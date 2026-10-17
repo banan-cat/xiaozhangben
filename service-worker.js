@@ -2,7 +2,7 @@
  * 作用：首次打开后缓存全部文件，之后断网也能打开。
  * 更新版本：改了 index.html 之后，把下面的 v1 改成 v2、v3……再部署。
  */
-const CACHE = 'xiaozhangben-v8';
+const CACHE = 'xiaozhangben-v9';
 
 const ASSETS = [
   './',

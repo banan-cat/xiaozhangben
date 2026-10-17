@@ -30,7 +30,7 @@ html,body{margin:0;padding:0}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Microsoft YaHei",sans-serif;
   background:var(--bg);color:var(--text);min-height:100dvh;
-  padding-bottom:calc(78px + env(safe-area-inset-bottom));
+  padding-bottom:calc(132px + env(safe-area-inset-bottom));
   -webkit-font-smoothing:antialiased;
 }
 button{font-family:inherit}
@@ -118,9 +118,8 @@ button{font-family:inherit}
 }
 .tabbar button.active{color:var(--accent)}
 .tabbar svg{width:23px;height:23px}
-.tab-spacer{flex:0 0 72px}
 .fab{
-  position:fixed;bottom:calc(30px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+  position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
   width:58px;height:58px;border-radius:50%;border:0;
   background:linear-gradient(135deg,#2dd4bf,#0d9488);color:#fff;
   font-size:30px;line-height:1;box-shadow:0 8px 22px rgba(13,148,136,.35);
@@ -690,12 +689,11 @@ table.summary-table th{color:var(--muted);font-weight:600}
     </div>
     <div class="card">
       <div class="card-title">关于</div>
-      <p class="muted-text" id="aboutText">小账本 v1.4<br>数据只存本机 · 不上传云端</p>
+      <p class="muted-text" id="aboutText">小账本 v1.5<br>数据只存本机 · 不上传云端</p>
       <div class="hint">iPhone 安装：Safari 打开 → 分享 → 添加到主屏幕。</div>
     </div>
   </section>
 
-  <div class="tab-spacer"></div>
   <nav class="tabbar">
     <button data-view="bills" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1Z"/><path d="M9 8h6M9 12h6"/></svg>
@@ -705,7 +703,6 @@ table.summary-table th{color:var(--muted);font-weight:600}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
       <span>统计</span>
     </button>
-    <div class="tab-spacer"></div>
     <button data-view="invest">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>
       <span>投资</span>
@@ -1697,7 +1694,7 @@ function renderBooks() {
 function renderMe() {
   const b = Number(data.budgets[state.month]) || 0;
   $('#budgetInput').value = b ? b : '';
-  $('#aboutText').innerHTML = `小账本 v1.4<br>${data.transactions.length} 笔账单 · ${data.categories.length} 个分类 · ${data.accounts.length} 个账户 · ${(data.investments || []).length} 个投资项目 · ${(data.policies || []).length} 张保单<br>数据只存本机 · 不上传云端`;
+  $('#aboutText').innerHTML = `小账本 v1.5<br>${data.transactions.length} 笔账单 · ${data.categories.length} 个分类 · ${data.accounts.length} 个账户 · ${(data.investments || []).length} 个投资项目 · ${(data.policies || []).length} 张保单<br>数据只存本机 · 不上传云端`;
   applyTheme();
 }
 
