@@ -1,0 +1,4168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#14b8a6">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="小账本">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>小账本</title>
+<style>
+:root{
+  --bg:#f5f6f7; --card:#ffffff; --text:#1f2937; --muted:#9ca3af; --line:#eef0f2;
+  --accent:#14b8a6; --accent-soft:#e6f7f4; --expense:#ef4444; --income:#10b981;
+  --warn-bg:#fff7e6; --warn-line:#f3d28b; --warn-text:#8a5a00;
+  --shadow:0 6px 24px rgba(17,24,39,.06);
+}
+[data-theme="dark"]{
+  --bg:#0f1115; --card:#171a21; --text:#e5e7eb; --muted:#8b93a1; --line:#242833;
+  --accent:#2dd4bf; --accent-soft:#12312e; --expense:#f87171; --income:#34d399;
+  --warn-bg:#2a2417; --warn-line:#5a4a24; --warn-text:#f0c96b;
+  --shadow:0 6px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);min-height:100dvh;
+  padding-bottom:calc(78px + env(safe-area-inset-bottom));
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit}
+#app{max-width:520px;margin:0 auto;min-height:100dvh;position:relative}
+.view{display:none;padding:0 16px 20px}
+.view.active{display:block}
+.hidden{display:none!important}
+
+/* 备份提示条 */
+.banner{
+  display:flex;align-items:center;gap:8px;
+  background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-text);
+  border-radius:14px;padding:10px 12px;font-size:13px;margin-bottom:12px;
+}
+.banner .grow{flex:1;min-width:0;line-height:1.45}
+.banner button{
+  border:0;border-radius:9px;padding:7px 10px;font-size:12px;font-weight:700;
+  background:#f59e0b;color:#fff;flex:0 0 auto;
+}
+.banner button.ghost2{background:transparent;color:var(--warn-text);font-weight:600}
+
+/* 月份头 */
+.month-head{
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  padding:18px 0 10px;position:sticky;top:0;z-index:5;
+  background:linear-gradient(var(--bg) 72%,transparent);
+}
+.month-head button{
+  width:38px;height:38px;border-radius:50%;border:0;background:var(--card);
+  color:var(--text);font-size:22px;line-height:1;box-shadow:var(--shadow);
+}
+.month-head button:disabled{opacity:.3}
+.month-label{font-size:18px;font-weight:700;min-width:112px;text-align:center}
+
+/* 首页汇总 */
+.summary-card{background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+.summary-label{font-size:13px;color:var(--muted);letter-spacing:.5px}
+.summary-expense{font-size:38px;font-weight:800;color:var(--expense);margin-top:2px;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.summary-row{display:flex;gap:18px;margin-top:6px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.summary-row b{color:var(--text);font-weight:600;margin-left:4px}
+.summary-row b.inc{color:var(--income)}
+.summary-row b.bal{color:#3b82f6}
+.summary-row b.bal.neg{color:var(--expense)}
+.budget-line{margin-top:14px}
+.budget-text{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
+.budget-bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.budget-bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
+.budget-bar i.over{background:var(--expense)}
+
+/* 流水 */
+.day-group{margin-bottom:16px}
+.day-head{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);padding:4px 6px 8px}
+.day-sum{font-size:11px;text-align:right}
+.tx{
+  display:flex;align-items:center;width:100%;gap:12px;padding:11px 12px;
+  background:var(--card);border:0;border-radius:14px;margin-bottom:8px;
+  text-align:left;color:var(--text);box-shadow:0 1px 0 rgba(0,0,0,.02);
+}
+.tx:active{transform:scale(.995)}
+.tx-icon{width:42px;height:42px;border-radius:13px;background:var(--bg);display:grid;place-items:center;font-size:21px;flex:0 0 auto}
+.tx-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tx-main b{font-size:15px;font-weight:600;display:block}
+.tx-main small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tx-amount{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tx-amount.expense{color:var(--expense)}
+.tx-amount.income{color:var(--income)}
+.tx-amount.transfer{color:var(--accent)}
+
+/* 空状态 */
+.empty{text-align:center;padding:56px 20px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:6px}
+.empty-icon{font-size:44px;margin-bottom:4px}
+.empty b{color:var(--text);font-size:16px}
+.empty span{font-size:13px}
+
+/* 底部导航 */
+.tabbar{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;
+  height:calc(64px + env(safe-area-inset-bottom));padding:0 10px env(safe-area-inset-bottom);
+  background:var(--card);border-top:1px solid var(--line);
+  display:flex;align-items:stretch;z-index:30;
+}
+.tabbar button{
+  flex:1;border:0;background:none;color:var(--muted);font-size:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+}
+.tabbar button.active{color:var(--accent)}
+.tabbar svg{width:23px;height:23px}
+.tab-spacer{flex:0 0 72px}
+.fab{
+  position:fixed;bottom:calc(30px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+  width:58px;height:58px;border-radius:50%;border:0;
+  background:linear-gradient(135deg,#2dd4bf,#0d9488);color:#fff;
+  font-size:30px;line-height:1;box-shadow:0 8px 22px rgba(13,148,136,.35);
+  z-index:40;display:grid;place-items:center;padding-bottom:4px;
+}
+.fab:active{transform:translateX(-50%) scale(.94)}
+.fab svg{width:26px;height:26px}
+
+/* 记账弹层 */
+.sheet-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet-mask.hidden{display:none}
+.sheet{
+  width:100%;max-width:520px;max-height:94dvh;background:var(--card);
+  border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;
+  animation:up .22s ease;
+}
+@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;gap:8px}
+.ghost{border:0;background:none;color:var(--muted);font-size:15px;padding:6px}
+.ghost.danger{color:var(--expense)}
+.sheet-head .save{background:var(--accent);color:#fff;border:0;border-radius:99px;padding:8px 18px;font-size:15px;font-weight:700}
+.type-tabs{display:flex;background:var(--bg);border-radius:99px;padding:3px}
+.type-tabs button{border:0;background:none;color:var(--muted);font-size:13px;padding:6px 12px;border-radius:99px}
+.type-tabs button.active{background:var(--card);color:var(--text);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.amount-display{text-align:center;font-size:42px;font-weight:800;padding:4px 16px 8px;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.amount-display span:first-child{font-size:22px;color:var(--muted);margin-right:4px}
+.sheet-body{flex:1;overflow-y:auto;padding:0 16px 8px;-webkit-overflow-scrolling:touch}
+.cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:6px 0 10px}
+.cat{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  border:1.5px solid transparent;background:var(--bg);border-radius:14px;
+  padding:10px 4px;color:var(--text);font-size:12px;
+}
+.cat span:first-child{font-size:22px;line-height:1.2}
+.cat.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.field-row{display:flex;gap:8px;margin-bottom:8px}
+.field-row input,.field-row select,.field-row button{
+  flex:1;border:0;background:var(--bg);border-radius:12px;padding:11px 12px;
+  font-size:14px;color:var(--text);min-width:0;
+}
+.field-row input::placeholder{color:var(--muted)}
+input[type="date"]{-webkit-appearance:none;appearance:none;text-align:center}
+
+/* 分类快捷备注 */
+.note-chips{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 10px}
+.chip{
+  border:1px solid var(--line);background:var(--bg);color:var(--text);
+  border-radius:99px;padding:5px 10px;font-size:12px;
+}
+.chip.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
+
+/* 粘贴识别 */
+.detect-pill{
+  display:block;width:100%;border:1px dashed var(--line);background:var(--card);
+  color:var(--muted);border-radius:14px;padding:9px 10px;font-size:12px;
+  margin:-4px 0 12px;text-align:center;
+}
+.detect-pill:active{background:var(--bg)}
+.parse-card{width:calc(100% - 32px);max-width:440px}
+.parse-card textarea{
+  width:100%;min-height:130px;box-sizing:border-box;resize:vertical;
+  border:0;background:var(--bg);border-radius:12px;padding:12px;
+  font:14px/1.6 inherit;color:var(--text);margin:4px 0 10px;
+}
+.parse-card textarea::placeholder{color:var(--muted)}
+.parse-card textarea:focus{outline:2px solid var(--accent);outline-offset:-2px}
+.transfer-fields{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;margin:6px 0 12px;align-items:center}
+.tf-row{display:flex;flex-direction:column;gap:4px;min-width:0}
+.tf-row>span{font-size:12px;color:var(--muted);padding-left:6px}
+.tf-row select{flex:1;border:0;background:var(--bg);border-radius:12px;padding:12px;font-size:14px;color:var(--text);min-width:0}
+.tf-arrow{color:var(--muted);font-size:16px;padding-top:18px}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.keypad button{border:0;background:var(--card);color:var(--text);font-size:22px;font-weight:600;padding:14px 0;min-height:52px}
+.keypad button:active{background:var(--bg)}
+.keypad .del{font-size:18px;color:var(--muted)}
+
+/* 卡片/统计 */
+.card{background:var(--card);border-radius:20px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:12px}
+.backup-status{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.backup-status.ok{color:var(--income)}
+.backup-status.bad{color:var(--expense)}
+.btn:disabled{opacity:.45}
+.backup-list{max-height:52vh;overflow:auto;margin:4px 0 10px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
+.backup-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border:1px solid var(--line);background:var(--bg);border-radius:12px;
+  padding:10px 12px;color:var(--text);text-align:left;font-size:13px;
+}
+.backup-item small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.backup-arrow{color:var(--accent);font-weight:700;white-space:nowrap}
+.backup-card{max-width:440px;width:calc(100% - 32px)}
+.donut-wrap{position:relative;width:180px;height:180px;margin:0 auto}
+.donut-wrap svg{width:100%;height:100%;display:block}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-center small{font-size:11px;color:var(--muted)}
+.donut-center b{font-size:18px;margin-top:2px}
+.legend{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.legend-row{display:flex;align-items:center;gap:8px;font-size:13px}
+.dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.legend-row .name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend-row .pct{color:var(--muted);width:48px;text-align:right}
+.legend-row .amt{width:84px;text-align:right;font-weight:600}
+.trend{display:flex;align-items:flex-end;justify-content:space-between;height:150px;gap:6px;padding-top:8px}
+.trend-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
+.trend-bars{flex:1;display:flex;align-items:flex-end;gap:3px;width:100%;justify-content:center}
+.trend-bars i{width:9px;border-radius:4px 4px 0 0;display:block;min-height:2px}
+.trend-bars .exp{background:var(--expense)}
+.trend-bars .inc{background:var(--income)}
+.trend-col>span{font-size:10px;color:var(--muted)}
+.trend-note{font-size:11px;color:var(--muted);margin-top:8px;text-align:center}
+.rank-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px}
+.rank-name{width:84px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-bar{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.rank-bar i{display:block;height:100%;border-radius:99px}
+.rank-amt{width:84px;text-align:right;font-weight:600}
+
+/* 统计：时间范围 + 三段汇总 + 排行 */
+.period-bar{display:flex;gap:4px;background:var(--card);border-radius:14px;padding:4px;margin:2px 0 8px;box-shadow:var(--shadow)}
+.period-bar button{flex:1;border:0;background:none;color:var(--muted);font-size:13px;padding:8px 0;border-radius:10px}
+.period-bar button.active{background:var(--accent);color:#fff;font-weight:700}
+.range-line{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin:0 4px 10px}
+.range-line button{border:0;background:none;color:var(--accent);font-size:12px;padding:2px 0}
+.range-custom{display:flex;gap:6px;align-items:center;margin:0 0 10px}
+.range-custom input{flex:1;min-width:0;border:0;background:var(--card);border-radius:10px;padding:9px 8px;font-size:12px;color:var(--text);box-shadow:var(--shadow)}
+.range-custom span{font-size:12px;color:var(--muted)}
+.range-custom button{border:0;background:var(--accent);color:#fff;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;flex:0 0 auto}
+.stat-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat-box{background:var(--card);border-radius:16px;padding:12px 8px;text-align:center;box-shadow:var(--shadow)}
+.stat-box small{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+.stat-box b{font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.3px}
+.stat-box.income b{color:var(--income)}
+.stat-box.expense b{color:var(--expense)}
+.stat-box.balance b{color:#3b82f6}
+.stat-box.balance b.neg{color:var(--expense)}
+.row-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mini-seg{display:flex;background:var(--bg);border-radius:99px;padding:3px}
+.mini-seg button{border:0;background:none;color:var(--muted);font-size:12px;padding:5px 12px;border-radius:99px}
+.mini-seg button.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.rank-list{display:flex;flex-direction:column;gap:13px}
+.rank-item{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.rk-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-meta{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
+.rk-amt{font-size:14px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.rk-bar{grid-column:1 / -1;height:7px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:4px}
+.rk-bar i{display:block;height:100%;border-radius:99px;min-width:2px}
+
+/* 投资 */
+.invest-card .summary-expense{color:var(--text)}
+.invest-row{display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--bg);border-radius:14px;padding:12px;margin-bottom:8px;text-align:left;color:var(--text)}
+.invest-icon{width:38px;height:38px;border-radius:11px;background:var(--card);display:grid;place-items:center;font-size:19px;flex:0 0 auto}
+.invest-main{flex:1;min-width:0}
+.invest-main b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.invest-main small{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.invest-side{text-align:right;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.invest-side b{display:block;font-size:14px}
+.invest-side small{font-size:11px}
+.profit{color:var(--expense)}
+.loss{color:var(--income)}
+.invest-modal{max-height:88vh;overflow-y:auto}
+.invest-modal label{margin-bottom:9px}
+.invest-modal select{display:block;width:100%;margin-top:6px;border:0;background:var(--bg);border-radius:10px;padding:11px;font-size:15px;color:var(--text)}
+.mini-card input:focus,.mini-card select:focus,.mini-card textarea:focus{outline:2px solid var(--accent);outline-offset:-2px}
+.inline-input{display:flex;gap:6px;margin-top:6px}
+.inline-input input{margin-top:0;flex:1;min-width:0}
+.inline-input button{border:0;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:0 12px;font-size:12px;font-weight:700;flex:0 0 auto}
+
+/* 保险 */
+.insurance-card .summary-expense{color:var(--text)}
+.policy-group-title{font-size:12px;color:var(--muted);font-weight:700;margin:12px 2px 6px}
+.policy-group-title:first-child{margin-top:2px}
+.policy-row{display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--bg);border-radius:14px;padding:12px;margin-bottom:8px;text-align:left;color:var(--text)}
+.policy-main{flex:1;min-width:0}
+.policy-main b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.policy-main small{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.policy-side{text-align:right;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.policy-side b{display:block;font-size:14px}
+.policy-side small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.badge{display:inline-block;font-size:10px;line-height:1.5;padding:1px 6px;border-radius:99px;margin-left:4px;vertical-align:1px}
+.badge.warn{background:var(--warn-bg);color:var(--warn-text)}
+.badge.danger{background:rgba(239,68,68,.12);color:var(--expense)}
+.badge.ok{background:rgba(16,185,129,.12);color:var(--income)}
+.banner.danger{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);color:var(--expense)}
+
+/* 详情页：投资 / 保险共用 */
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.btn-grid .btn{margin-top:0;text-align:center}
+.tab-strip{display:flex;background:var(--card);border-radius:14px;padding:4px;margin:2px 0 14px;box-shadow:var(--shadow)}
+.tab-strip button{flex:1;border:0;background:none;color:var(--muted);font-size:13px;padding:9px 0;border-radius:10px}
+.tab-strip button.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric{background:var(--bg);border-radius:14px;padding:11px 12px;min-width:0}
+.metric small{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+.metric b{font-size:15px;font-variant-numeric:tabular-nums;word-break:break-all}
+.metric.wide{grid-column:1 / -1}
+.detail-line{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.detail-line:last-child{border-bottom:0}
+.detail-line>span{color:var(--muted);flex:0 0 auto}
+.detail-line>b{font-weight:600;text-align:right;word-break:break-all}
+.help{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--line);color:var(--muted);font-size:10px;margin-left:4px;font-weight:700;vertical-align:1px}
+details.tip{margin-top:8px;font-size:11px;color:var(--muted)}
+details.tip summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:4px}
+details.tip summary::-webkit-details-marker{display:none}
+details.tip p{margin:6px 0 0;line-height:1.65;background:var(--bg);padding:8px 10px;border-radius:10px}
+.ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ai-grid button{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;padding:10px 8px;font-size:12px;line-height:1.4;text-align:left}
+.ai-grid button:active{background:var(--accent-soft);border-color:var(--accent)}
+.flow-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.flow-row:last-child{border-bottom:0}
+.flow-icon{width:34px;height:34px;border-radius:10px;background:var(--bg);display:grid;place-items:center;font-size:16px;flex:0 0 auto}
+.flow-main{flex:1;min-width:0}
+.flow-main b{display:block;font-size:13px}
+.flow-main small{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flow-amt{text-align:right;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.flow-amt b{display:block;font-size:13px}
+.flow-amt button{border:0;background:none;color:var(--muted);font-size:11px;padding:2px 0}
+.chart-box{width:100%;height:150px;background:var(--bg);border-radius:14px;padding:8px;margin-top:4px}
+.chart-box svg{width:100%;height:100%;display:block;overflow:visible}
+.pie-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.pie{width:150px;height:150px;border-radius:50%;position:relative;flex:0 0 auto}
+.pie::after{content:"";position:absolute;inset:28%;border-radius:50%;background:var(--card)}
+.pie-legend{flex:1;min-width:140px;display:flex;flex-direction:column;gap:8px}
+.hbar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px}
+.hbar-name{width:76px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar-track{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.hbar-track i{display:block;height:100%;border-radius:99px;min-width:2px}
+.hbar-rate{width:62px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.summary-table{border-collapse:collapse;width:100%;font-size:12px;min-width:420px}
+table.summary-table th,table.summary-table td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.summary-table th:first-child,table.summary-table td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+table.summary-table th{color:var(--muted);font-weight:600}
+.status-badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;white-space:nowrap;font-weight:600}
+.status-badge.ok{background:rgba(16,185,129,.12);color:var(--income)}
+.status-badge.warn{background:var(--warn-bg);color:var(--warn-text)}
+.status-badge.danger{background:rgba(239,68,68,.12);color:var(--expense)}
+.status-badge.gain{background:rgba(239,68,68,.1);color:var(--expense)}
+.status-badge.lossb{background:rgba(16,185,129,.12);color:var(--income)}
+.person-filter{border:0;background:var(--bg);border-radius:10px;color:var(--text);font-size:12px;padding:7px 9px;max-width:130px}
+.ins-summary-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.warn-item{font-size:12px;line-height:1.55;padding:8px 10px;border-radius:10px;background:var(--bg);margin-bottom:6px;color:var(--text)}
+.warn-item.danger{background:rgba(239,68,68,.08);color:var(--expense)}
+.warn-item.warn{background:var(--warn-bg);color:var(--warn-text)}
+.attach-row{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;margin:-4px 0 10px}
+.attach-row a,.attach-row button{border:0;background:var(--accent-soft);color:var(--accent);border-radius:9px;padding:6px 10px;font-size:12px;font-weight:700;text-decoration:none}
+.schedule-row{display:flex;justify-content:space-between;font-size:12px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.schedule-row:last-child{border-bottom:0}
+.schedule-row .due{color:var(--muted)}
+.ai-content{font-size:13px;line-height:1.75;white-space:pre-wrap;max-height:56vh;overflow:auto;-webkit-overflow-scrolling:touch}
+.ai-card{width:calc(100% - 32px);max-width:440px}
+.mini-card textarea{display:block;width:100%;margin-top:6px;border:0;background:var(--bg);border-radius:10px;padding:11px;font-size:15px;color:var(--text);font-family:inherit;resize:vertical}
+.mini-card label.check{display:flex;align-items:center;gap:7px;color:var(--text);font-size:13px;margin-bottom:10px}
+.mini-card label.check input{display:inline-block;width:auto;margin:0}
+.mini-card input[type="file"]{display:block;width:100%;margin-top:6px;font-size:12px;color:var(--muted)}
+.body-text{font-size:13px;line-height:1.7;color:var(--text)}
+
+/* 账本 */
+.rows .list-row{border-bottom:1px solid var(--line)}
+.rows .list-row:last-child{border-bottom:0}
+.list-row{display:flex;align-items:center;gap:12px;padding:11px 0}
+.list-icon{width:38px;height:38px;border-radius:11px;background:var(--bg);display:grid;place-items:center;font-size:19px;flex:0 0 auto}
+.list-main{flex:1;min-width:0}
+.list-main b{font-size:14px;font-weight:600;display:block}
+.list-main small{font-size:11px;color:var(--muted)}
+.list-amt{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mini-btn{border:0;background:var(--bg);color:var(--muted);border-radius:8px;padding:6px 9px;font-size:12px;white-space:nowrap}
+.mini-btn.danger{color:var(--expense)}
+.btn{width:100%;border:0;background:var(--bg);color:var(--text);font-size:14px;padding:12px;border-radius:12px;margin-top:10px;text-align:left}
+.btn.primary{background:var(--accent);color:#fff;text-align:center;font-weight:700}
+.btn.danger{color:var(--expense)}
+.muted-text{font-size:13px;color:var(--muted);line-height:1.8;margin:0}
+.hint{font-size:11px;color:var(--muted);margin-top:8px}
+.row-inline{display:flex;gap:8px}
+.row-inline input{flex:1;border:0;background:var(--bg);border-radius:12px;padding:11px 12px;font-size:15px;color:var(--text);min-width:0}
+.row-inline button{border:0;background:var(--accent);color:#fff;border-radius:12px;padding:0 18px;font-size:14px;font-weight:700}
+.seg{display:flex;background:var(--bg);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;color:var(--muted);font-size:13px;padding:8px;border-radius:9px}
+.seg button.active{background:var(--card);color:var(--text);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+
+/* 小弹窗 */
+#mini{align-items:center}
+.mini-card{width:calc(100% - 48px);max-width:360px;background:var(--card);border-radius:20px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.mini-card h3{margin:0 0 14px;font-size:17px}
+.mini-card label{display:block;font-size:12px;color:var(--muted);margin-bottom:10px}
+.mini-card input{display:block;width:100%;margin-top:6px;border:0;background:var(--bg);border-radius:10px;padding:11px;font-size:15px;color:var(--text)}
+.mini-actions{display:flex;gap:10px;margin-top:16px}
+.mini-actions button{flex:1;border:0;border-radius:12px;padding:12px;font-size:14px;font-weight:700}
+#miniCancel{background:var(--bg);color:var(--text)}
+#miniSave{background:var(--accent);color:#fff}
+#miniDelete{background:var(--bg);color:var(--expense)}
+
+/* 提示 */
+.toast{
+  position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(10px);background:rgba(17,24,39,.92);color:#fff;
+  font-size:13px;padding:9px 16px;border-radius:99px;opacity:0;pointer-events:none;
+  transition:.25s;z-index:80;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 账单 -->
+  <section id="view-bills" class="view active">
+    <div class="month-head">
+      <button class="month-prev" aria-label="上个月">‹</button>
+      <div class="month-label"></div>
+      <button class="month-next" aria-label="下个月">›</button>
+    </div>
+    <div id="restoreBanner" class="banner hidden"></div>
+    <div id="exportBanner" class="banner hidden"></div>
+    <div class="summary-card">
+      <div class="summary-label">本月支出</div>
+      <div class="summary-expense" id="monthExpense">¥0.00</div>
+      <div class="summary-row">
+        <span>收入 <b id="monthIncome" class="inc">¥0.00</b></span>
+        <span>结余 <b id="monthBalance" class="bal">¥0.00</b></span>
+      </div>
+      <div class="budget-line">
+        <div class="budget-text"><span>本月预算</span><span id="budgetText">未设置</span></div>
+        <div class="budget-bar"><i id="budgetFill"></i></div>
+      </div>
+    </div>
+    <button class="detect-pill" id="openParse">📋 粘贴付款信息，自动填好</button>
+    <div id="billList"></div>
+  </section>
+
+  <!-- 统计 -->
+  <section id="view-stats" class="view">
+    <div class="month-head">
+      <button class="month-prev" id="statPrev" aria-label="上个月">‹</button>
+      <div class="month-label" id="statMonthLabel">统计</div>
+      <button class="month-next" id="statNext" aria-label="下个月">›</button>
+    </div>
+    <div class="period-bar" id="periodBar">
+      <button data-period="week">周</button>
+      <button data-period="month" class="active">月</button>
+      <button data-period="year">年</button>
+      <button data-period="all">总</button>
+      <button data-period="custom">自定义</button>
+    </div>
+    <div class="range-line">
+      <span id="rangeLabel">—</span>
+      <button id="rangeEdit">修改时间</button>
+    </div>
+    <div class="range-custom hidden" id="rangeCustom">
+      <input type="date" id="rangeStart">
+      <span>至</span>
+      <input type="date" id="rangeEnd">
+      <button id="rangeApply">确定</button>
+    </div>
+    <div class="stat-summary">
+      <div class="stat-box income"><small>收入</small><b id="statIncome">¥0.00</b></div>
+      <div class="stat-box expense"><small>支出</small><b id="statExpense">¥0.00</b></div>
+      <div class="stat-box balance"><small>结余</small><b id="statBalance">¥0.00</b></div>
+    </div>
+    <div class="card">
+      <div class="card-title row-title">
+        <span id="donutTitle">支出构成</span>
+        <div class="mini-seg" id="kindBar">
+          <button data-kind="expense" class="active">支出</button>
+          <button data-kind="income">收入</button>
+        </div>
+      </div>
+      <div id="donutCard"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">近 6 个月</div>
+      <div id="trendCard"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">分类排行</div>
+      <div id="rankCard"></div>
+    </div>
+  </section>
+
+  <!-- 投资 -->
+  <section id="view-invest" class="view">
+    <div class="month-head"><div class="month-label">投资台账</div></div>
+    <div class="summary-card invest-card">
+      <div class="summary-label">当前总市值</div>
+      <div class="summary-expense" id="investValue">¥0.00</div>
+      <div class="summary-row">
+        <span>总投入本金 <b id="investCost">¥0.00</b></span>
+        <span>整体盈亏 <b id="investPnl">¥0.00</b></span>
+        <span>收益率 <b id="investRate">0.00%</b></span>
+        <span>年化 <b id="investAnnual">—</b></span>
+      </div>
+      <div class="hint" style="margin-top:10px" id="investHint">红 = 赚，绿 = 亏。投资资金默认不算日常收支。</div>
+    </div>
+    <div id="investAlerts"></div>
+    <div class="card">
+      <div class="card-title row-title">
+        <span>我的项目</span>
+        <button class="btn" id="investRefresh" style="width:auto;margin:0;padding:7px 12px;font-size:12px">更新行情</button>
+      </div>
+      <div id="investList"></div>
+      <div class="btn-grid">
+        <button class="btn primary" id="investAdd">+ 新建投资项目</button>
+        <button class="btn" id="investAlloc">资产配置图表</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 投资详情 -->
+  <section id="view-invest-detail" class="view">
+    <div class="month-head">
+      <button id="investDetailBack" aria-label="返回">‹</button>
+      <div class="month-label" id="investDetailName">项目</div>
+      <button class="mini-btn" id="investDetailEdit">编辑</button>
+    </div>
+    <div class="tab-strip" id="investTabs">
+      <button data-itab="overview" class="active">概览</button>
+      <button data-itab="flows">交易流水</button>
+      <button data-itab="valuations">估值记录</button>
+    </div>
+    <div id="investTabOverview"></div>
+    <div id="investTabFlows" class="hidden"></div>
+    <div id="investTabValuations" class="hidden"></div>
+  </section>
+
+  <!-- 资产配置 -->
+  <section id="view-invest-alloc" class="view">
+    <div class="month-head">
+      <button id="allocBack" aria-label="返回">‹</button>
+      <div class="month-label">资产配置</div>
+      <span style="width:38px"></span>
+    </div>
+    <div class="card"><div class="card-title">资产占比</div><div id="allocPie"></div></div>
+    <div class="card"><div class="card-title">各项目收益率</div><div id="allocBars"></div></div>
+    <div class="card"><div class="card-title">集中度提醒</div><div id="allocWarn"></div></div>
+  </section>
+
+  <!-- 保险 -->
+  <section id="view-insurance" class="view">
+    <div class="month-head"><div class="month-label">家庭保险</div></div>
+    <div class="summary-card insurance-card">
+      <div class="ins-summary-top">
+        <div class="summary-label" id="insSummaryLabel">全家年度总保费</div>
+        <select class="person-filter" id="insPersonFilter"><option value="">全家</option></select>
+      </div>
+      <div class="summary-expense" id="insPremium">¥0.00</div>
+      <div class="summary-row">
+        <span>总保额 <b id="insCoverage">¥0.00</b></span>
+        <span>保单 <b id="insCount">0</b> 张</span>
+        <span>待缴 <b id="insDue">0</b> 笔</span>
+      </div>
+      <div class="hint" style="margin-top:10px">年交保费按月缴 × 12 估算。只做记录和提醒，不卖保险。</div>
+    </div>
+    <div id="insAlerts"></div>
+    <div class="card">
+      <div class="card-title">保单清单</div>
+      <div id="policyList"></div>
+      <div class="btn-grid">
+        <button class="btn primary" id="insAdd">+ 新增保单</button>
+        <button class="btn" id="insSummary">全家保障汇总</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 保单详情 -->
+  <section id="view-policy-detail" class="view">
+    <div class="month-head">
+      <button id="policyDetailBack" aria-label="返回">‹</button>
+      <div class="month-label" id="policyDetailName">保单</div>
+      <button class="mini-btn" id="policyDetailEdit">编辑</button>
+    </div>
+    <div class="tab-strip" id="policyTabs">
+      <button data-ptab="overview" class="active">概览</button>
+      <button data-ptab="payments">缴费记录</button>
+      <button data-ptab="claims">保障 & 理赔</button>
+    </div>
+    <div id="policyTabOverview"></div>
+    <div id="policyTabPayments" class="hidden"></div>
+    <div id="policyTabClaims" class="hidden"></div>
+  </section>
+
+  <!-- 全家保障汇总 -->
+  <section id="view-ins-family" class="view">
+    <div class="month-head">
+      <button id="insFamilyBack" aria-label="返回">‹</button>
+      <div class="month-label">全家保障汇总</div>
+      <span style="width:38px"></span>
+    </div>
+    <div class="card"><div class="card-title">每位家人的保额</div><div id="familyTable"></div></div>
+    <div class="card"><div class="card-title">风险提示</div><div id="familyWarnings"></div></div>
+    <div class="card"><div class="card-title">保费压力</div><div id="familyPremium"></div></div>
+  </section>
+
+  <!-- 账本 -->
+  <section id="view-books" class="view">
+    <div class="month-head">
+      <button id="booksBack" aria-label="返回">‹</button>
+      <div class="month-label">账本</div>
+      <span style="width:38px"></span>
+    </div>
+    <div class="card">
+      <div class="card-title">支出分类</div>
+      <div id="expenseCats" class="rows"></div>
+      <button class="btn" data-add="cat-expense">+ 新增支出分类</button>
+    </div>
+    <div class="card">
+      <div class="card-title">收入分类</div>
+      <div id="incomeCats" class="rows"></div>
+      <button class="btn" data-add="cat-income">+ 新增收入分类</button>
+    </div>
+    <div class="card">
+      <div class="card-title">账户</div>
+      <div id="accountList" class="rows"></div>
+      <button class="btn" data-add="acc">+ 新增账户</button>
+    </div>
+  </section>
+
+  <!-- 我的 -->
+  <section id="view-me" class="view">
+    <div class="month-head"><div class="month-label">我的</div></div>
+    <div class="card">
+      <div class="card-title">本月预算</div>
+      <div class="row-inline">
+        <input id="budgetInput" type="number" inputmode="decimal" placeholder="例如 3000">
+        <button id="budgetSave">保存</button>
+      </div>
+      <div class="hint">设好后，首页会显示预算进度条。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">账本设置</div>
+      <button class="btn" id="openBooks">分类与账户管理</button>
+      <div class="hint">新增 / 修改支出、收入分类，管理微信、支付宝、银行卡、现金等账户余额。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">外观</div>
+      <div class="seg">
+        <button data-theme-choice="auto">跟随系统</button>
+        <button data-theme-choice="light">浅色</button>
+        <button data-theme-choice="dark">深色</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">自动备份到电脑</div>
+      <div class="backup-status" id="backupStatus">检查中…</div>
+      <button class="btn" id="backupNow" disabled>立即备份到电脑</button>
+      <button class="btn" id="restoreFromPc" disabled>从电脑备份恢复</button>
+      <div class="hint">电脑上双击「启动预览.bat」时可用：每记一笔都会自动写一份 JSON 到 <code>库工具箱\记账PWA备份\</code>，保留最近 200 份。手机在同一 Wi-Fi 下打开电脑地址也会自动备份。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">导出与备份</div>
+      <div class="hint" id="exportStatus" style="margin-bottom:8px">上次导出：—</div>
+      <button class="btn" id="exportJson">导出备份（JSON）</button>
+      <button class="btn" id="exportCsv">导出账单（CSV，Excel 可开）</button>
+      <button class="btn" id="exportMd">导出全部数据（Markdown）</button>
+      <div class="hint" style="margin:14px 0 6px">导出提醒（打开 App 时横幅提示）</div>
+      <div class="seg" id="exportReminderSeg">
+        <button data-reminder="weekly">每周</button>
+        <button data-reminder="monthly">每月</button>
+        <button data-reminder="off">关闭</button>
+      </div>
+      <div class="hint">iPhone 不允许网页后台定时通知，所以提醒只在你打开 App 时出现。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">导入 / 清空</div>
+      <button class="btn" id="importBtn">导入备份（JSON）</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <button class="btn danger" id="clearData">清空所有数据</button>
+      <div class="hint">清空和导入都会二次确认；导入会覆盖当前数据。数据只存在这台设备的浏览器里，不上传。换手机或清理浏览器前，先导出备份。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">关于</div>
+      <p class="muted-text" id="aboutText">小账本 v1.4<br>数据只存本机 · 不上传云端</p>
+      <div class="hint">iPhone 安装：Safari 打开 → 分享 → 添加到主屏幕。</div>
+    </div>
+  </section>
+
+  <div class="tab-spacer"></div>
+  <nav class="tabbar">
+    <button data-view="bills" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1Z"/><path d="M9 8h6M9 12h6"/></svg>
+      <span>账单</span>
+    </button>
+    <button data-view="stats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      <span>统计</span>
+    </button>
+    <div class="tab-spacer"></div>
+    <button data-view="invest">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>
+      <span>投资</span>
+    </button>
+    <button data-view="insurance">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg>
+      <span>保险</span>
+    </button>
+    <button data-view="me">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      <span>我的</span>
+    </button>
+  </nav>
+  <button id="fab" class="fab" aria-label="记一笔">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+</div>
+
+<!-- 记账弹层 -->
+<div id="sheet" class="sheet-mask hidden">
+  <div class="sheet">
+    <div class="sheet-head">
+      <button id="sheetClose" class="ghost">取消</button>
+      <div class="type-tabs" id="typeTabs">
+        <button data-type="expense" class="active">支出</button>
+        <button data-type="income">收入</button>
+        <button data-type="transfer">转账</button>
+      </div>
+      <button id="sheetDelete" class="ghost danger hidden">删除</button>
+      <button id="sheetSave" class="save">保存</button>
+    </div>
+    <div class="amount-display"><span>¥</span><span id="amountText">0.00</span></div>
+    <div class="sheet-body">
+      <div class="cat-grid" id="catGrid"></div>
+      <div class="transfer-fields hidden" id="transferFields">
+        <label class="tf-row"><span>从</span><select id="accountSelect"></select></label>
+        <span class="tf-arrow">→</span>
+        <label class="tf-row"><span>到</span><select id="toAccountSelect"></select></label>
+      </div>
+      <div class="field-row">
+        <input id="noteInput" placeholder="添加备注..." maxlength="60">
+      </div>
+      <div class="note-chips" id="noteChips"></div>
+      <div class="field-row">
+        <input id="dateInput" type="date">
+        <select id="accountSelect2"></select>
+      </div>
+    </div>
+    <div class="keypad" id="keypad">
+      <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button>
+      <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
+      <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button>
+      <button data-key=".">.</button><button data-key="0">0</button><button data-key="del" class="del">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- 小弹窗：分类/账户 -->
+<div id="mini" class="sheet-mask hidden">
+  <div class="mini-card">
+    <h3 id="miniTitle">编辑</h3>
+    <label>名称<input id="miniName" maxlength="12" placeholder="例如：宠物"></label>
+    <label>图标（一个 emoji）<input id="miniIcon" maxlength="4" placeholder="🐱"></label>
+    <label id="miniInitialWrap" class="hidden">初始余额<input id="miniInitial" type="number" inputmode="decimal" placeholder="0"></label>
+    <div class="mini-actions">
+      <button id="miniDelete" class="hidden">删除</button>
+      <button id="miniCancel">取消</button>
+      <button id="miniSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 电脑备份列表 -->
+<div id="backupModal" class="sheet-mask hidden">
+  <div class="mini-card backup-card">
+    <h3>电脑上的备份</h3>
+    <div id="backupList" class="backup-list"><div class="muted-text">读取中…</div></div>
+    <div class="mini-actions">
+      <button id="backupModalClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 粘贴识别 -->
+<div id="parseModal" class="sheet-mask hidden">
+  <div class="mini-card parse-card">
+    <h3>粘贴付款信息</h3>
+    <div class="hint" style="margin-bottom:8px">把微信 / 支付宝的付款通知（或银行短信）整段粘进来，自动认出金额、商户、分类，你再核对保存。</div>
+    <textarea id="parseText" placeholder="例如：&#10;微信支付凭证&#10;付款金额 ¥18.50&#10;收款方 沙县小吃&#10;支付时间 2026年10月18日 12:30"></textarea>
+    <div class="mini-actions">
+      <button id="parsePaste">读取剪贴板</button>
+      <button id="parseCancel">取消</button>
+      <button id="parseGo">识别并填写</button>
+    </div>
+  </div>
+</div>
+
+<!-- 投资项目 -->
+<div id="investModal" class="sheet-mask hidden">
+  <div class="mini-card invest-modal">
+    <h3 id="investTitle">新建投资项目</h3>
+    <label>名称<input id="investName" maxlength="30" placeholder="例如：沪深300ETF"></label>
+    <label>类型
+      <select id="investType">
+        <option value="stock">股票</option>
+        <option value="fund">基金</option>
+        <option value="other">朋友 / 别人的项目（非标投资）</option>
+      </select>
+    </label>
+    <div id="investMarketWrap">
+      <label>代码（股票填 600519，场外基金填 6 位）
+        <input id="investCode" maxlength="10" placeholder="600519 / 161725">
+      </label>
+      <label>持有份额<input id="investShares" type="number" inputmode="decimal" placeholder="例如 100"></label>
+      <label>总成本（元）<input id="investCostInput" type="number" inputmode="decimal" placeholder="例如 1000"></label>
+      <label>当前价（元）
+        <span class="inline-input"><input id="investPrice" type="number" inputmode="decimal" placeholder="点右边获取"><button id="investQuote" type="button">获取现价</button></span>
+      </label>
+    </div>
+    <div id="investOtherWrap" class="hidden">
+      <label>投入本金（元）<input id="investOtherCost" type="number" inputmode="decimal" placeholder="例如 10000"></label>
+      <label>当前估值 / 能拿回来的钱（元）<input id="investOtherValue" type="number" inputmode="decimal" placeholder="例如 12000"></label>
+      <div class="hint" style="margin:-2px 0 9px">朋友开店、合伙、借出去的钱都记这里。没有市场报价，就按你估计的「现在能拿回多少」填。</div>
+    </div>
+    <label>开始持有日期<input id="investStart" type="date"></label>
+    <label>止盈线（%，可选）<input id="investStopProfit" type="number" inputmode="decimal" placeholder="例如 20，涨到 20% 提醒"></label>
+    <label>止损线（%，可选）<input id="investStopLoss" type="number" inputmode="decimal" placeholder="例如 10，跌 10% 提醒"></label>
+    <label class="check"><input type="checkbox" id="investSyncDividend"> 分红 / 回款同步记到日常收支（收入 → 理财）</label>
+    <label>备注（可选）<input id="investNote" maxlength="40" placeholder="例如：长期持有 / 朋友开店"></label>
+    <div class="mini-actions">
+      <button id="investDelete" class="hidden">删除</button>
+      <button id="investCancel">取消</button>
+      <button id="investSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 保单 -->
+<div id="policyModal" class="sheet-mask hidden">
+  <div class="mini-card invest-modal">
+    <h3 id="policyTitle">新增保单</h3>
+    <label>保单名称<input id="polName" maxlength="40" placeholder="例如：平安 e 生保"></label>
+    <label>保险公司<input id="polCompany" maxlength="30" placeholder="例如：平安健康"></label>
+    <label>险种
+      <select id="polType">
+        <option value="medical">医疗险</option>
+        <option value="critical">重疾险</option>
+        <option value="accident">意外险</option>
+        <option value="life">寿险</option>
+        <option value="annuity">年金 / 养老</option>
+        <option value="car">车险</option>
+        <option value="social">社保 / 医保</option>
+        <option value="other">其他</option>
+      </select>
+    </label>
+    <label>被保险人<input id="polInsured" maxlength="20" placeholder="本人 / 爸爸 / 妈妈 / 姥爷"></label>
+    <label>投保人（可选）<input id="polApplicant" maxlength="20" placeholder="谁付的钱"></label>
+    <label>保额（元）<input id="polCoverage" type="number" inputmode="decimal" placeholder="例如 2000000"></label>
+    <label>分项保额（可选，一行一项）<textarea id="polCoverageItems" rows="2" placeholder="住院医疗 3000000&#10;重疾 500000"></textarea></label>
+    <label>每期保费（元）<input id="polPremium" type="number" inputmode="decimal" placeholder="例如 365"></label>
+    <label>缴费频率
+      <select id="polFreq">
+        <option value="year">年缴</option>
+        <option value="month">月缴</option>
+        <option value="once">趸交（只交一次）</option>
+      </select>
+    </label>
+    <label>缴费年限（可选）<input id="polPayYears" maxlength="20" placeholder="例如 20 年 / 终身"></label>
+    <label>免赔额（元，可选）<input id="polDeductible" type="number" inputmode="decimal" placeholder="例如 10000"></label>
+    <label>保障开始日期<input id="polStart" type="date"></label>
+    <label>保障结束日期（空 = 终身 / 长期）<input id="polEnd" type="date"></label>
+    <label>下次缴费日期<input id="polNext" type="date"></label>
+    <button class="btn" id="polPaid" style="margin-top:0" hidden>✓ 本期已缴，下一期自动顺延</button>
+    <label>受益人（可选）<input id="polBeneficiary" maxlength="30" placeholder="例如：法定 / 配偶"></label>
+    <label>保单号（可选）<input id="polNo" maxlength="40"></label>
+    <label>现金价值（元，储蓄险才填）<input id="polCashValue" type="number" inputmode="decimal" placeholder="退保能拿回的钱"></label>
+    <label>免责 / 特别约定（可选）<textarea id="polExclusions" rows="2" placeholder="例如：既往症不赔；等待期 90 天"></textarea></label>
+    <label>备注（可选）<input id="polNote" maxlength="60" placeholder="例如：保证续保 20 年"></label>
+    <label class="check"><input type="checkbox" id="polSyncExpense"> 记“本期已缴”时，同步记一笔日常支出</label>
+    <label class="check"><input type="checkbox" id="polSyncAsset"> 储蓄险现金价值计入投资台账</label>
+    <label class="check"><input type="checkbox" id="polTerminated"> 这张保单已终止 / 已退保</label>
+    <label>电子保单附件（图片 / PDF，最大 1.2MB）<input id="polFile" type="file" accept="application/pdf,image/*"></label>
+    <div class="attach-row" id="polAttachInfo"></div>
+    <div class="mini-actions">
+      <button id="polDelete" class="hidden">删除</button>
+      <button id="polCancel">取消</button>
+      <button id="polSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 投资交易流水 -->
+<div id="flowModal" class="sheet-mask hidden">
+  <div class="mini-card invest-modal">
+    <h3 id="flowTitle">记一笔交易</h3>
+    <label>类型
+      <select id="flowKind">
+        <option value="invest">建仓 / 投入</option>
+        <option value="add">追加投入</option>
+        <option value="dividend">分红 / 回款（落袋）</option>
+        <option value="redeem">赎回 / 取出</option>
+      </select>
+    </label>
+    <label>日期<input id="flowDate" type="date"></label>
+    <label>金额（元）<input id="flowAmount" type="number" inputmode="decimal" placeholder="这笔进 / 出了多少钱"></label>
+    <label id="flowSharesWrap">份额 / 股数<input id="flowShares" type="number" inputmode="decimal" placeholder="例如 100"></label>
+    <label id="flowPriceWrap">成交价（可选）<input id="flowPrice" type="number" inputmode="decimal" placeholder="留空 = 金额 ÷ 份额"></label>
+    <label>备注（可选）<input id="flowNote" maxlength="40" placeholder="例如：第二次加仓"></label>
+    <div class="hint" id="flowHint"></div>
+    <div class="mini-actions">
+      <button id="flowCancel">取消</button>
+      <button id="flowSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 估值更新 -->
+<div id="valuationModal" class="sheet-mask hidden">
+  <div class="mini-card invest-modal">
+    <h3>更新估值</h3>
+    <label>日期<input id="valDate" type="date"></label>
+    <div id="valPriceWrap">
+      <label>现价 / 净值
+        <span class="inline-input"><input id="valPrice" type="number" inputmode="decimal" placeholder="例如 1329"><button id="valQuote" type="button">获取现价</button></span>
+      </label>
+    </div>
+    <div id="valValueWrap" class="hidden">
+      <label>当前估值 / 能拿回的钱（元）<input id="valValue" type="number" inputmode="decimal"></label>
+    </div>
+    <label>备注（可选）<input id="valNote" maxlength="40" placeholder="例如：季度估值"></label>
+    <div class="mini-actions">
+      <button id="valCancel">取消</button>
+      <button id="valSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 理赔记录 -->
+<div id="claimModal" class="sheet-mask hidden">
+  <div class="mini-card invest-modal">
+    <h3>记一笔理赔</h3>
+    <label>日期<input id="claimDate" type="date"></label>
+    <label>理赔金额（元）<input id="claimAmount" type="number" inputmode="decimal" placeholder="没赔付就填 0"></label>
+    <label>原因 / 项目<input id="claimReason" maxlength="60" placeholder="例如：住院医疗 / 意外门诊"></label>
+    <label>状态
+      <select id="claimStatus">
+        <option value="pending">待申请</option>
+        <option value="review">审核中</option>
+        <option value="paid">已赔付</option>
+        <option value="rejected">拒赔</option>
+      </select>
+    </label>
+    <label>备注（可选）<input id="claimNote" maxlength="60"></label>
+    <div class="mini-actions">
+      <button id="claimCancel">取消</button>
+      <button id="claimSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 本地解读 / 复制给 AI -->
+<div id="aiModal" class="sheet-mask hidden">
+  <div class="mini-card ai-card">
+    <h3 id="aiTitle">解读</h3>
+    <div class="hint" style="margin-bottom:8px">这是按你填的数据在本机算出来的「人话解读」，不联网、不花钱。想深聊可以复制提示词，发给任何 AI。</div>
+    <div class="ai-content" id="aiContent"></div>
+    <div class="mini-actions">
+      <button id="aiCopy">复制给 AI 深聊</button>
+      <button id="aiClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+'use strict';
+
+/* ================= 基础工具 ================= */
+const KEY = 'xiaozhangben.v1';
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const pad = n => String(n).padStart(2, '0');
+const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => fmtDate(new Date());
+const nowTime = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const thisMonth = () => today().slice(0, 7);
+const round2 = n => Math.round((Number(n) || 0) * 100) / 100;
+const fmt = n => '¥' + round2(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtNum = n => round2(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function fmtMonth(key) {
+  const [y, m] = key.split('-');
+  return `${y}年${Number(m)}月`;
+}
+function shiftMonth(key, delta) {
+  const [y, m] = key.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
+function dayLabel(dateStr) {
+  const t = today();
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  const ystr = fmtDate(y);
+  if (dateStr === t) return '今天';
+  if (dateStr === ystr) return '昨天';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  const wd = '日一二三四五六'[d.getDay()];
+  return `${d.getMonth() + 1}月${d.getDate()}日 周${wd}`;
+}
+
+/* ================= 数据 ================= */
+const PALETTE = ['#f97316','#ef4444','#8b5cf6','#3b82f6','#14b8a6','#eab308','#ec4899','#22c55e','#64748b','#06b6d4'];
+
+function defaults() {
+  return {
+    version: 1,
+    transactions: [],
+    categories: [
+      { id:'c_food',    name:'餐饮', icon:'🍜', color:'#f97316', type:'expense' },
+      { id:'c_traffic', name:'交通', icon:'🚕', color:'#3b82f6', type:'expense' },
+      { id:'c_shop',    name:'购物', icon:'🛍️', color:'#ec4899', type:'expense' },
+      { id:'c_home',    name:'房租', icon:'🏠', color:'#8b5cf6', type:'expense' },
+      { id:'c_fun',     name:'娱乐', icon:'🎮', color:'#06b6d4', type:'expense' },
+      { id:'c_med',     name:'医疗', icon:'💊', color:'#ef4444', type:'expense' },
+      { id:'c_study',   name:'教育', icon:'📚', color:'#eab308', type:'expense' },
+      { id:'c_travel',  name:'旅行', icon:'✈️', color:'#14b8a6', type:'expense' },
+      { id:'c_gift',    name:'人情', icon:'🎁', color:'#f43f5e', type:'expense' },
+      { id:'c_insurance', name:'保险', icon:'🛡️', color:'#0ea5e9', type:'expense' },
+      { id:'c_other',   name:'其他', icon:'📦', color:'#64748b', type:'expense' },
+      { id:'c_salary',  name:'工资', icon:'💰', color:'#10b981', type:'income' },
+      { id:'c_part',    name:'兼职', icon:'💼', color:'#14b8a6', type:'income' },
+      { id:'c_invest',  name:'理财', icon:'📈', color:'#3b82f6', type:'income' },
+      { id:'c_red',     name:'红包', icon:'🧧', color:'#ef4444', type:'income' },
+      { id:'c_inother', name:'其他', icon:'✨', color:'#64748b', type:'income' }
+    ],
+    accounts: [
+      { id:'a_wechat', name:'微信', icon:'💬', initial:0 },
+      { id:'a_alipay', name:'支付宝', icon:'🔵', initial:0 },
+      { id:'a_bank',   name:'银行卡', icon:'💳', initial:0 },
+      { id:'a_cash',   name:'现金', icon:'💵', initial:0 }
+    ],
+    budgets: {},
+    investments: [],
+    policies: [],
+    settings: {
+      theme: 'auto',
+      lastExpenseCat: 'c_food',
+      lastIncomeCat: 'c_salary',
+      lastAccount: 'a_wechat',
+      exportReminder: 'weekly'
+    }
+  };
+}
+
+let data;
+try {
+  const raw = localStorage.getItem(KEY);
+  data = raw ? JSON.parse(raw) : defaults();
+} catch (e) {
+  data = defaults();
+}
+
+function ensureData() {
+  if (!data || typeof data !== 'object') data = defaults();
+  if (!Array.isArray(data.transactions)) data.transactions = [];
+  if (!Array.isArray(data.categories) || !data.categories.length) data.categories = defaults().categories;
+  if (!Array.isArray(data.accounts) || !data.accounts.length) data.accounts = defaults().accounts;
+  if (!data.budgets || typeof data.budgets !== 'object') data.budgets = {};
+  if (!Array.isArray(data.investments)) data.investments = [];
+  if (!Array.isArray(data.policies)) data.policies = [];
+  if (!data.categories.some(c => c.id === 'c_insurance')) {
+    data.categories.push({ id:'c_insurance', name:'保险', icon:'🛡️', color:'#0ea5e9', type:'expense' });
+  }
+  data.investments.forEach(it => {
+    if (!Array.isArray(it.flows)) it.flows = [];
+    if (!Array.isArray(it.valuations)) it.valuations = [];
+    if (it.realized == null) it.realized = 0;
+    if (!it.startDate) it.startDate = it.updated || today();
+    if (it.stopProfit == null) it.stopProfit = 0;
+    if (it.stopLoss == null) it.stopLoss = 0;
+    if (it.syncDividend == null) it.syncDividend = false;
+  });
+  data.policies.forEach(p => {
+    if (!Array.isArray(p.paymentHistory)) p.paymentHistory = [];
+    if (!Array.isArray(p.claims)) p.claims = [];
+    if (!Array.isArray(p.coverageItems)) p.coverageItems = [];
+    if (!p.applicant) p.applicant = '';
+    if (!p.payYears) p.payYears = '';
+    if (p.deductible == null) p.deductible = 0;
+    if (p.cashValue == null) p.cashValue = 0;
+    if (!p.exclusions) p.exclusions = '';
+    if (p.syncExpense == null) p.syncExpense = false;
+    if (p.syncAsset == null) p.syncAsset = false;
+    if (p.terminated == null) p.terminated = false;
+    if (p.attachment === undefined) p.attachment = null;
+  });
+  const d = defaults().settings;
+  data.settings = Object.assign({}, d, data.settings || {});
+}
+ensureData();
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(data));
+  } catch (e) {
+    toast('保存失败：存储空间不足');
+  }
+  queueBackup();
+}
+
+/* ================= 电脑自动备份 ================= */
+const BACKUP_API = '/api';
+let backupAvailable = false;
+let backupTimer = null;
+let backupInFlight = false;
+let backupPending = false;
+let bannerDismissed = false;
+let lastBackupAt = '';
+try { lastBackupAt = localStorage.getItem('xiaozhangben.backupAt') || ''; } catch (e) {}
+
+const backupModal = $('#backupModal');
+const backupList = $('#backupList');
+
+function backupStatus() {
+  const el = $('#backupStatus');
+  if (!el) return;
+  if (backupAvailable) {
+    el.className = 'backup-status ok';
+    el.textContent = lastBackupAt ? '已开启 · 上次备份 ' + lastBackupAt : '已开启 · 记第一笔后自动备份';
+  } else {
+    el.className = 'backup-status bad';
+    el.textContent = '没连上电脑服务。电脑上打开「启动预览.bat」才能自动备份；网页版只能手动导出。';
+  }
+  const now = $('#backupNow'), restore = $('#restoreFromPc');
+  if (now) now.disabled = !backupAvailable;
+  if (restore) restore.disabled = !backupAvailable;
+}
+
+async function apiFetch(path, opts, timeout) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout || 2500);
+  try {
+    return await fetch(BACKUP_API + path, Object.assign({ cache: 'no-store', signal: ctrl.signal }, opts || {}));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function checkBackupServer() {
+  try {
+    const res = await apiFetch('/health', {}, 1800);
+    if (!res.ok) throw new Error('no');
+    const info = await res.json();
+    if (!info || info.app !== 'xiaozhangben') throw new Error('no');
+    backupAvailable = true;
+    backupStatus();
+    if (data.transactions.length === 0 && !bannerDismissed) maybeOfferRestore();
+  } catch (e) {
+    backupAvailable = false;
+    backupStatus();
+  }
+}
+
+function queueBackup() {
+  if (!backupAvailable) return;
+  clearTimeout(backupTimer);
+  backupTimer = setTimeout(() => { backupNow(false); }, 600);
+}
+
+async function backupNow(manual) {
+  if (!backupAvailable) {
+    if (manual) toast('电脑服务没开');
+    return;
+  }
+  if (backupInFlight) {
+    backupPending = true;
+    if (manual) toast('正在备份，稍等');
+    return;
+  }
+  backupInFlight = true;
+  try {
+    const res = await apiFetch('/backup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, 5000);
+    if (!res.ok) throw new Error('backup failed');
+    const out = await res.json();
+    lastBackupAt = out.time || '';
+    try { localStorage.setItem('xiaozhangben.backupAt', lastBackupAt); } catch (e) {}
+    backupStatus();
+    if (manual) toast('已备份到电脑');
+  } catch (e) {
+    backupAvailable = false;
+    backupStatus();
+    if (manual) toast('备份失败：检查电脑服务');
+  } finally {
+    backupInFlight = false;
+    if (backupPending) {
+      backupPending = false;
+      backupNow(false);
+    }
+  }
+}
+
+async function maybeOfferRestore() {
+  try {
+    const res = await apiFetch('/backups', {}, 4000);
+    if (!res.ok) return;
+    const out = await res.json();
+    const best = (out.backups || []).find(b => b.txCount > 0);
+    if (!best) return;
+    const b = $('#restoreBanner');
+    b.innerHTML = '';
+    const span = document.createElement('span');
+    span.className = 'grow';
+    span.textContent = `电脑上有备份：${best.time} · ${best.txCount} 笔，要恢复吗？`;
+    const yes = document.createElement('button');
+    yes.textContent = '恢复';
+    yes.addEventListener('click', () => restoreBackup(best.file));
+    const no = document.createElement('button');
+    no.className = 'ghost2';
+    no.textContent = '忽略';
+    no.addEventListener('click', () => { bannerDismissed = true; b.classList.add('hidden'); });
+    b.append(span, yes, no);
+    b.classList.remove('hidden');
+    window.scrollTo(0, 0);
+  } catch (e) {}
+}
+
+async function openBackupModal() {
+  if (!backupAvailable) { toast('电脑服务没开'); return; }
+  backupModal.classList.remove('hidden');
+  backupList.innerHTML = '<div class="muted-text">读取中…</div>';
+  try {
+    const res = await apiFetch('/backups', {}, 5000);
+    if (!res.ok) throw new Error('读取失败');
+    const out = await res.json();
+    const items = out.backups || [];
+    if (!items.length) {
+      backupList.innerHTML = '<div class="muted-text">还没有备份。记一笔就会自动生成。</div>';
+      return;
+    }
+    backupList.innerHTML = '';
+    items.forEach(b => {
+      const btn = document.createElement('button');
+      btn.className = 'backup-item';
+      const left = document.createElement('span');
+      const t = document.createElement('b');
+      t.textContent = b.time;
+      const s = document.createElement('small');
+      s.textContent = `${b.txCount} 笔 · ${b.sizeText}`;
+      left.append(t, s);
+      const right = document.createElement('span');
+      right.className = 'backup-arrow';
+      right.textContent = '恢复 ›';
+      btn.append(left, right);
+      btn.addEventListener('click', () => restoreBackup(b.file));
+      backupList.appendChild(btn);
+    });
+  } catch (e) {
+    backupList.innerHTML = '<div class="muted-text">读取失败：电脑服务没开或网络不通。</div>';
+  }
+}
+
+async function restoreBackup(file) {
+  if (!confirm('用这份备份覆盖当前数据？\n如果当前有账单，会先自动备份一次。')) return;
+  if (window.XZBDataSafety && !window.XZBDataSafety.confirmRestore()) return;
+  try {
+    if (data.transactions.length) await backupNow(false);
+    const res = await apiFetch('/backup/' + encodeURIComponent(file), {}, 6000);
+    if (!res.ok) throw new Error('读取失败');
+    const obj = await res.json();
+    if (!obj || !Array.isArray(obj.transactions)) throw new Error('文件格式不对');
+    data = obj;
+    ensureData();
+    save();
+    renderAll();
+    if (window.XZBDataSafety) window.XZBDataSafety.checkReminder();
+    backupModal.classList.add('hidden');
+    const banner = $('#restoreBanner');
+    if (banner) banner.classList.add('hidden');
+    toast('已从电脑备份恢复');
+  } catch (e) {
+    toast('恢复失败：' + e.message);
+  }
+}
+
+const cat = id => data.categories.find(c => c.id === id);
+const acc = id => data.accounts.find(a => a.id === id);
+const firstCat = type => (data.categories.find(c => c.type === type) || {}).id || null;
+
+/* ================= 状态 ================= */
+const state = {
+  view: 'bills',
+  month: thisMonth(),
+  statsPeriod: 'month',
+  statsKind: 'expense',
+  customStart: '',
+  customEnd: '',
+  investEditingId: null,
+  investDetailId: null,
+  investTab: 'overview',
+  flowKind: 'invest',
+  flowTargetId: null,
+  valTargetId: null,
+  policyEditingId: null,
+  policyDetailId: null,
+  policyTab: 'overview',
+  claimTargetId: null,
+  insPerson: '',
+  aiPrompt: '',
+  sheetType: 'expense',
+  editingId: null,
+  amount: '0',
+  catId: null,
+  accountId: null,
+  toAccountId: null,
+  note: '',
+  date: today(),
+  time: nowTime()
+};
+
+/* ================= 分类快捷备注 ================= */
+const NOTE_PRESETS = {
+  c_food:    { hint: '吃了什么？', quick: ['早餐', '午饭', '晚饭', '外卖', '咖啡', '零食', '聚餐'] },
+  c_traffic: { hint: '坐了什么？去哪？', quick: ['地铁', '公交', '打车', '高铁', '加油', '停车'] },
+  c_shop:    { hint: '买了什么？', quick: ['日用品', '衣服', '数码', '护肤', '家居'] },
+  c_home:    { hint: '房租 / 水电 / 物业？', quick: ['房租', '水费', '电费', '物业', '燃气'] },
+  c_fun:     { hint: '玩了什么？', quick: ['电影', '游戏', '演出', 'KTV', '聚会'] },
+  c_med:     { hint: '看什么病 / 买什么药？', quick: ['挂号', '买药', '检查', '牙科'] },
+  c_study:   { hint: '学什么？', quick: ['书', '课程', '考试', '文具'] },
+  c_travel:  { hint: '去哪玩了？', quick: ['机票', '酒店', '门票', '特产'] },
+  c_gift:    { hint: '给谁 / 什么事？', quick: ['红包', '礼物', '请客', '份子钱'] },
+  c_other:   { hint: '备注一下', quick: [] },
+  c_salary:  { hint: '哪个月的工资？', quick: ['工资', '奖金', '补贴'] },
+  c_part:    { hint: '做了什么兼职？', quick: ['兼职', '稿费', '副业'] },
+  c_invest:  { hint: '什么收益？', quick: ['利息', '基金', '股票', '分红'] },
+  c_red:     { hint: '谁给的红包？', quick: ['红包', '转账'] },
+  c_inother: { hint: '备注一下', quick: ['退款', '报销', '其他'] }
+};
+
+function recentNotes(catId) {
+  const count = new Map();
+  const last = new Map();
+  data.transactions.forEach((t, i) => {
+    if (t.categoryId !== catId || !t.note) return;
+    const n = t.note.trim();
+    if (!n) return;
+    count.set(n, (count.get(n) || 0) + 1);
+    last.set(n, i);
+  });
+  return [...count.keys()]
+    .sort((a, b) => (count.get(b) - count.get(a)) || (last.get(b) - last.get(a)))
+    .slice(0, 6);
+}
+
+function renderNoteChips() {
+  const box = $('#noteChips');
+  if (!box) return;
+  if (state.sheetType === 'transfer') {
+    box.innerHTML = '';
+    box.classList.add('hidden');
+    noteInput.placeholder = '转账备注（可不填）';
+    return;
+  }
+  const preset = NOTE_PRESETS[state.catId] || { hint: '备注一下', quick: [] };
+  const chips = [];
+  // 先放自己写过的备注（常写的排前面），再放分类自带的常用词
+  recentNotes(state.catId).forEach(n => { if (!chips.includes(n)) chips.push(n); });
+  preset.quick.forEach(n => { if (!chips.includes(n)) chips.push(n); });
+  box.classList.toggle('hidden', !chips.length);
+  const cur = (state.note || '').trim();
+  box.innerHTML = chips.slice(0, 12).map(n =>
+    `<button type="button" class="chip${n === cur ? ' active' : ''}" data-note="${esc(n)}">${esc(n)}</button>`
+  ).join('');
+  noteInput.placeholder = preset.hint;
+}
+
+/* ================= 通用 UI ================= */
+let toastTimer = null;
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+function emptyState(icon, title, sub) {
+  return `<div class="empty"><div class="empty-icon">${icon}</div><b>${title}</b><span>${sub}</span></div>`;
+}
+
+function switchView(v) {
+  state.view = v;
+  $$('.view').forEach(el => el.classList.toggle('active', el.id === 'view-' + v));
+  let tabKey = v;
+  if (v === 'books') tabKey = 'me';
+  else if (v.indexOf('invest') === 0) tabKey = 'invest';
+  else if (v.indexOf('policy') === 0 || v.indexOf('ins-') === 0) tabKey = 'insurance';
+  $$('.tabbar [data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === tabKey));
+  window.scrollTo(0, 0);
+}
+
+function applyTheme() {
+  const t = data.settings.theme || 'auto';
+  const dark = t === 'dark' || (t === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', dark ? '#0f1115' : '#14b8a6');
+  $$('[data-theme-choice]').forEach(b => b.classList.toggle('active', b.dataset.themeChoice === t));
+}
+
+/* ================= 账单页 ================= */
+function monthTx(month) {
+  return data.transactions.filter(t => t.date && t.date.slice(0, 7) === month);
+}
+
+function renderBills() {
+  const txs = monthTx(state.month);
+  const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const balance = income - expense;
+
+  $('#monthExpense').textContent = fmt(expense);
+  $('#monthIncome').textContent = fmt(income);
+  $('#monthBalance').textContent = fmt(balance);
+  $('#monthBalance').classList.toggle('neg', balance < 0);
+
+  const budget = Number(data.budgets[state.month]) || 0;
+  const remain = budget - expense;
+  const fill = $('#budgetFill');
+  if (budget > 0) {
+    fill.style.width = Math.min(100, expense / budget * 100) + '%';
+    fill.classList.toggle('over', expense > budget);
+    $('#budgetText').textContent = remain >= 0 ? `剩 ${fmt(remain)}` : `超支 ${fmt(-remain)}`;
+  } else {
+    fill.style.width = '0%';
+    fill.classList.remove('over');
+    $('#budgetText').textContent = '未设置';
+  }
+
+  $$('#view-bills .month-label').forEach(el => { el.textContent = fmtMonth(state.month); });
+  $$('.month-next').forEach(b => { b.disabled = state.month >= thisMonth(); });
+
+  const groups = {};
+  txs.forEach(t => { (groups[t.date] = groups[t.date] || []).push(t); });
+  const dates = Object.keys(groups).sort().reverse();
+  const list = $('#billList');
+  if (!dates.length) {
+    list.innerHTML = emptyState('🧾', '这个月还没有记账', '点下面的 + 记第一笔');
+    return;
+  }
+  list.innerHTML = dates.map(d => {
+    const items = groups[d].slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const de = items.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const di = items.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const sums = [];
+    if (de) sums.push('支出 ' + fmtNum(de));
+    if (di) sums.push('收入 ' + fmtNum(di));
+    return `<div class="day-group">
+      <div class="day-head"><span>${dayLabel(d)}</span><span class="day-sum">${sums.join(' · ')}</span></div>
+      ${items.map(txRow).join('')}
+    </div>`;
+  }).join('');
+  $$('.tx', list).forEach(node => {
+    node.addEventListener('click', () => {
+      const t = data.transactions.find(x => x.id === node.dataset.id);
+      if (t) openSheet(t.type, t);
+    });
+  });
+}
+
+function txRow(t) {
+  if (t.type === 'transfer') {
+    const from = acc(t.accountId);
+    const to = acc(t.toAccountId);
+    return `<button class="tx" data-id="${t.id}">
+      <span class="tx-icon">🔁</span>
+      <span class="tx-main"><b>转账</b><small>${esc((from && from.name) || '')} → ${esc((to && to.name) || '')}${t.note ? ' · ' + esc(t.note) : ''}</small></span>
+      <span class="tx-amount transfer">-${fmtNum(t.amount)}</span>
+    </button>`;
+  }
+  const c = cat(t.categoryId);
+  const isExp = t.type === 'expense';
+  return `<button class="tx" data-id="${t.id}">
+    <span class="tx-icon">${c ? c.icon : '📦'}</span>
+    <span class="tx-main"><b>${c ? esc(c.name) : '未分类'}</b><small>${t.note ? esc(t.note) : (acc(t.accountId) ? esc(acc(t.accountId).name) : '')}</small></span>
+    <span class="tx-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmtNum(t.amount)}</span>
+  </button>`;
+}
+
+/* ================= 统计页 ================= */
+function periodRange() {
+  const now = new Date();
+  const p = state.statsPeriod;
+  if (p === 'week') {
+    const day = (now.getDay() + 6) % 7;
+    const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
+    const e = new Date(s); e.setDate(s.getDate() + 6);
+    return { start: fmtDate(s), end: fmtDate(e) };
+  }
+  if (p === 'year') {
+    return { start: `${now.getFullYear()}-01-01`, end: today() };
+  }
+  if (p === 'all') {
+    const dates = data.transactions.map(t => t.date).filter(Boolean).sort();
+    return { start: dates[0] || `${now.getFullYear()}-01-01`, end: dates[dates.length - 1] || today() };
+  }
+  if (p === 'custom' && state.customStart && state.customEnd) {
+    return state.customStart <= state.customEnd
+      ? { start: state.customStart, end: state.customEnd }
+      : { start: state.customEnd, end: state.customStart };
+  }
+  const [y, m] = state.month.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return { start: `${state.month}-01`, end: `${state.month}-${pad(last)}` };
+}
+
+function rangeTx() {
+  const r = periodRange();
+  return data.transactions.filter(t => t.date && t.date >= r.start && t.date <= r.end);
+}
+
+function statsCatItems(txs, kind) {
+  const list = txs.filter(t => t.type === kind);
+  const total = list.reduce((s, t) => s + t.amount, 0);
+  const byCat = {};
+  const cnt = {};
+  list.forEach(t => {
+    byCat[t.categoryId] = (byCat[t.categoryId] || 0) + t.amount;
+    cnt[t.categoryId] = (cnt[t.categoryId] || 0) + 1;
+  });
+  const fallback = { id: '__unknown', name: '未分类', icon: '📦', color: '#94a3b8' };
+  const items = Object.entries(byCat).map(([id, amt]) => ({
+    cat: cat(id) || fallback,
+    amt,
+    count: cnt[id] || 0
+  })).sort((a, b) => b.amt - a.amt);
+  return { list, total, items };
+}
+
+function renderStats() {
+  const range = periodRange();
+  const txs = rangeTx();
+  const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const balance = income - expense;
+
+  const p = state.statsPeriod;
+  const isMonth = p === 'month';
+  $('#statPrev').classList.toggle('hidden', !isMonth);
+  $('#statNext').classList.toggle('hidden', !isMonth);
+  $('#statNext').disabled = state.month >= thisMonth();
+  $('#statMonthLabel').textContent = isMonth ? fmtMonth(state.month)
+    : p === 'week' ? '本周'
+    : p === 'year' ? range.start.slice(0, 4) + '年'
+    : p === 'all' ? '全部' : '自定义';
+
+  $('#rangeLabel').textContent = `${range.start.replace(/-/g, '/')} – ${range.end.replace(/-/g, '/')}`;
+  $('#statIncome').textContent = fmt(income);
+  $('#statExpense').textContent = fmt(expense);
+  const balEl = $('#statBalance');
+  balEl.textContent = fmt(balance);
+  balEl.classList.toggle('neg', balance < 0);
+
+  $$('#periodBar [data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === state.statsPeriod));
+  $$('#kindBar [data-kind]').forEach(b => b.classList.toggle('active', b.dataset.kind === state.statsKind));
+  const kind = state.statsKind;
+  $('#donutTitle').textContent = kind === 'income' ? '收入构成' : '支出构成';
+
+  const { total, items } = statsCatItems(txs, kind);
+  const centerLabel = kind === 'income' ? '总收入' : '总支出';
+  const donut = $('#donutCard');
+  if (!total) {
+    donut.innerHTML = emptyState(kind === 'income' ? '💰' : '📊',
+      kind === 'income' ? '这段时间没有收入' : '这段时间没有支出',
+      '换个时间范围，或记几笔账');
+  } else {
+    const top = items.slice(0, 5);
+    if (items.length > 5) {
+      const rest = items.slice(5);
+      const restAmt = rest.reduce((s, x) => s + x.amt, 0);
+      const restCount = rest.reduce((s, x) => s + x.count, 0);
+      top.push({ cat: { name: '其他', icon: '📦', color: '#94a3b8' }, amt: restAmt, count: restCount });
+    }
+    const R = 62, C = 2 * Math.PI * R;
+    let offset = 0;
+    const segs = top.map(x => {
+      const len = x.amt / total * C;
+      const seg = `<circle cx="80" cy="80" r="${R}" fill="none" stroke="${x.cat.color}" stroke-width="22"
+        stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-offset}"
+        transform="rotate(-90 80 80)"/>`;
+      offset += len;
+      return seg;
+    }).join('');
+    const legend = top.map(x => `<div class="legend-row">
+      <i class="dot" style="background:${x.cat.color}"></i>
+      <span class="name">${x.cat.icon} ${esc(x.cat.name)}</span>
+      <span class="amt">${fmt(x.amt)}</span>
+      <span class="pct">${(x.amt / total * 100).toFixed(1)}%</span>
+    </div>`).join('');
+    donut.innerHTML = `<div class="donut-wrap"><svg viewBox="0 0 160 160">${segs}</svg>
+      <div class="donut-center"><small>${centerLabel}</small><b>${fmt(total)}</b></div></div>
+      <div class="legend">${legend}</div>`;
+  }
+
+  const endMonth = range.end.slice(0, 7);
+  const months = [];
+  for (let i = 5; i >= 0; i--) months.push(shiftMonth(endMonth, -i));
+  const vals = months.map(m => {
+    const list = monthTx(m);
+    return {
+      m,
+      exp: list.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+      inc: list.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+    };
+  });
+  const max = Math.max(1, ...vals.map(v => Math.max(v.exp, v.inc)));
+  $('#trendCard').innerHTML = `<div class="trend">${vals.map(v => `<div class="trend-col">
+    <div class="trend-bars">
+      <i class="exp" style="height:${Math.max(2, v.exp / max * 110)}px"></i>
+      <i class="inc" style="height:${Math.max(2, v.inc / max * 110)}px"></i>
+    </div>
+    <span>${Number(v.m.slice(5))}月</span>
+  </div>`).join('')}</div><div class="trend-note">红 = 支出　绿 = 收入</div>`;
+
+  const rank = $('#rankCard');
+  if (!total) {
+    rank.innerHTML = emptyState('🏷️', '还没有分类数据', '记几笔账就能看到排行');
+  } else {
+    rank.innerHTML = `<div class="rank-list">${items.map(x => `<div class="rank-item">
+      <span class="rk-name">${x.cat.icon} ${esc(x.cat.name)}<span class="rk-meta">${x.count}笔 · ${(x.amt / total * 100).toFixed(2)}%</span></span>
+      <span class="rk-amt" style="color:${kind === 'income' ? 'var(--income)' : 'var(--expense)'}">${fmt(x.amt)}</span>
+      <div class="rk-bar"><i style="width:${Math.max(2, x.amt / total * 100)}%;background:${x.cat.color}"></i></div>
+    </div>`).join('')}</div>`;
+  }
+}
+
+/* ================= 账本页 ================= */
+function accountBalance(id) {
+  const a = acc(id);
+  let bal = a ? Number(a.initial) || 0 : 0;
+  data.transactions.forEach(t => {
+    if (t.type === 'income' && t.accountId === id) bal += t.amount;
+    if (t.type === 'expense' && t.accountId === id) bal -= t.amount;
+    if (t.type === 'transfer') {
+      if (t.accountId === id) bal -= t.amount;
+      if (t.toAccountId === id) bal += t.amount;
+    }
+  });
+  return bal;
+}
+
+function renderBooks() {
+  const renderCats = (type, container) => {
+    const list = data.categories.filter(c => c.type === type);
+    container.innerHTML = list.map(c => {
+      const count = data.transactions.filter(t => t.categoryId === c.id).length;
+      return `<div class="list-row">
+        <span class="list-icon">${c.icon}</span>
+        <span class="list-main"><b>${esc(c.name)}</b><small>${count} 笔</small></span>
+        <button class="mini-btn" data-edit-cat="${c.id}">编辑</button>
+        <button class="mini-btn danger" data-del-cat="${c.id}">删</button>
+      </div>`;
+    }).join('') || `<div class="hint" style="padding:8px 0">还没有分类</div>`;
+  };
+  renderCats('expense', $('#expenseCats'));
+  renderCats('income', $('#incomeCats'));
+
+  $('#accountList').innerHTML = data.accounts.map(a => {
+    const bal = accountBalance(a.id);
+    return `<div class="list-row">
+      <span class="list-icon">${a.icon}</span>
+      <span class="list-main"><b>${esc(a.name)}</b><small>初始 ${fmt(a.initial || 0)}</small></span>
+      <span class="list-amt" style="color:${bal < 0 ? 'var(--expense)' : 'var(--text)'}">${fmt(bal)}</span>
+      <button class="mini-btn" data-edit-acc="${a.id}">编辑</button>
+      <button class="mini-btn danger" data-del-acc="${a.id}">删</button>
+    </div>`;
+  }).join('') || `<div class="hint" style="padding:8px 0">还没有账户</div>`;
+}
+
+/* ================= 我的页 ================= */
+function renderMe() {
+  const b = Number(data.budgets[state.month]) || 0;
+  $('#budgetInput').value = b ? b : '';
+  $('#aboutText').innerHTML = `小账本 v1.4<br>${data.transactions.length} 笔账单 · ${data.categories.length} 个分类 · ${data.accounts.length} 个账户 · ${(data.investments || []).length} 个投资项目 · ${(data.policies || []).length} 张保单<br>数据只存本机 · 不上传云端`;
+  applyTheme();
+}
+
+/* ================= 投资页 ================= */
+const INVEST_TYPES = {
+  stock: { label: '股票', icon: '📈' },
+  fund:  { label: '基金', icon: '🧾' },
+  other: { label: '朋友 / 项目', icon: '💼' },
+  insurance: { label: '储蓄险', icon: '🛡️' }
+};
+const FLOW_TYPES = {
+  invest:   { label: '建仓投入', icon: '➕' },
+  add:      { label: '追加投入', icon: '➕' },
+  dividend: { label: '分红回款', icon: '💰' },
+  redeem:   { label: '赎回取出', icon: '➖' }
+};
+
+function investMarketValue(it) {
+  if (!it) return 0;
+  if (it.type === 'other' || it.type === 'insurance') return round2(it.value);
+  return round2((Number(it.shares) || 0) * (Number(it.price) || 0));
+}
+function investCost(it) {
+  return round2(Number(it.cost) || 0);
+}
+function investRealized(it) {
+  return round2(Number(it.realized) || 0);
+}
+function investFloatPnl(it) {
+  return round2(investMarketValue(it) - investCost(it));
+}
+function investTotalPnl(it) {
+  return round2(investFloatPnl(it) + investRealized(it));
+}
+function investRate(it) {
+  const c = investCost(it);
+  return c > 0 ? investTotalPnl(it) / c * 100 : 0;
+}
+function investHoldingDays(it) {
+  const s = it.startDate || it.updated || today();
+  const d = new Date(s + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.round((t.getTime() - d.getTime()) / 86400000));
+}
+function investAnnualized(it) {
+  if (it.type === 'insurance') return null;
+  const days = investHoldingDays(it);
+  const c = investCost(it);
+  if (days === null || days < 30 || c <= 0) return null;
+  const ratio = (investMarketValue(it) + investRealized(it)) / c;
+  if (ratio <= 0) return -100;
+  return (Math.pow(ratio, 365 / days) - 1) * 100;
+}
+
+/* 储蓄险现金价值：按开关作为一笔「其他资产」并入投资台账 */
+function policyPaidTotal(p) {
+  return round2((p.paymentHistory || []).reduce((s, x) => s + (Number(x.amount) || 0), 0));
+}
+function insuranceInvestAssets() {
+  return (data.policies || [])
+    .filter(p => p.syncAsset && Number(p.cashValue) > 0 && !p.terminated)
+    .map(p => ({
+      id: 'ins_' + p.id,
+      name: '储蓄险 · ' + p.name,
+      type: 'insurance',
+      cost: policyPaidTotal(p) || (Number(p.premium) || 0),
+      value: Number(p.cashValue) || 0,
+      realized: 0,
+      isInsurance: true,
+      policyId: p.id,
+      note: '保险现金价值',
+      updated: p.updated || today()
+    }));
+}
+function allInvestAssets() {
+  return (data.investments || []).concat(insuranceInvestAssets());
+}
+function investTotals() {
+  let value = 0, cost = 0, realized = 0, annualWeighted = 0, annualCost = 0;
+  allInvestAssets().forEach(it => {
+    value += investMarketValue(it);
+    cost += investCost(it);
+    realized += investRealized(it);
+    const a = investAnnualized(it);
+    if (a !== null && investCost(it) > 0) {
+      annualWeighted += a * investCost(it);
+      annualCost += investCost(it);
+    }
+  });
+  const pnl = round2(value + realized - cost);
+  const rate = cost > 0 ? pnl / cost * 100 : 0;
+  const annual = annualCost > 0 ? annualWeighted / annualCost : null;
+  return { value, cost, realized, pnl, rate, annual };
+}
+function fmtSigned(n) {
+  const v = round2(n);
+  if (!v) return '¥0.00';
+  return (v > 0 ? '+' : '-') + fmt(Math.abs(v));
+}
+function pnlClass(n) {
+  return n > 0 ? 'profit' : n < 0 ? 'loss' : '';
+}
+function investBadge(pnl) {
+  if (pnl > 0) return '<span class="status-badge gain">盈利</span>';
+  if (pnl < 0) return '<span class="status-badge lossb">浮亏</span>';
+  return '';
+}
+
+function renderInvest() {
+  const t = investTotals();
+  $('#investValue').textContent = fmt(t.value);
+  $('#investCost').textContent = fmt(t.cost);
+  const pnlEl = $('#investPnl');
+  pnlEl.textContent = fmtSigned(t.pnl);
+  pnlEl.className = pnlClass(t.pnl);
+  const rateEl = $('#investRate');
+  rateEl.textContent = (t.rate > 0 ? '+' : '') + t.rate.toFixed(2) + '%';
+  rateEl.className = pnlClass(t.pnl);
+  const annualEl = $('#investAnnual');
+  annualEl.textContent = t.annual === null ? '—' : (t.annual > 0 ? '+' : '') + t.annual.toFixed(2) + '%';
+  annualEl.className = t.annual === null ? '' : pnlClass(t.annual);
+
+  const hint = ['红 = 赚，绿 = 亏。投资资金默认不算日常收支。'];
+  if (t.realized) hint.push('已落袋 ' + fmtSigned(t.realized));
+  const insVal = insuranceInvestAssets().reduce((s, x) => s + investMarketValue(x), 0);
+  if (insVal > 0) hint.push('含储蓄险现金价值 ' + fmt(insVal));
+  $('#investHint').textContent = hint.join(' · ');
+
+  const alerts = [];
+  allInvestAssets().forEach(it => {
+    if (it.isInsurance) return;
+    const r = investRate(it);
+    if (Number(it.stopProfit) > 0 && r >= Number(it.stopProfit)) {
+      alerts.push({ level: 'warn', text: `${it.name} 收益率 ${r.toFixed(1)}%，到了你设的止盈线 ${it.stopProfit}%` });
+    }
+    if (Number(it.stopLoss) > 0 && r <= -Number(it.stopLoss)) {
+      alerts.push({ level: 'danger', text: `${it.name} 亏损 ${r.toFixed(1)}%，碰到你设的止损线 −${it.stopLoss}%` });
+    }
+  });
+  $('#investAlerts').innerHTML = alerts.slice(0, 3).map(a =>
+    `<div class="warn-item ${a.level}" style="margin-bottom:8px">${a.level === 'danger' ? '⚠️' : '⏰'} ${esc(a.text)}</div>`
+  ).join('');
+
+  const box = $('#investList');
+  if (!allInvestAssets().length) {
+    box.innerHTML = emptyState('📈', '还没有投资项目', '点下面「新建投资项目」，股票、基金、朋友的项目都能记');
+    return;
+  }
+  box.innerHTML = allInvestAssets().map(it => {
+    if (it.isInsurance) {
+      const pnl = investTotalPnl(it);
+      return `<button class="invest-row" data-policy="${it.policyId}">
+        <span class="invest-icon">🛡️</span>
+        <span class="invest-main"><b>${esc(it.name)} ${investBadge(pnl)}</b><small>储蓄险 · 现金价值（不计日常收支）</small></span>
+        <span class="invest-side"><b class="${pnlClass(pnl)}">${fmtSigned(pnl)}</b><small>${fmt(investMarketValue(it))}</small></span>
+      </button>`;
+    }
+    const type = INVEST_TYPES[it.type] || INVEST_TYPES.other;
+    const pnl = investTotalPnl(it);
+    const rate = investRate(it);
+    const unit = it.type === 'fund' ? '份' : '股';
+    const sub = it.type === 'other'
+      ? `${type.label}${it.note ? ' · ' + esc(it.note) : ''}`
+      : `${type.label}${it.code ? ' ' + esc(it.code) : ''} · ${Number(it.shares) || 0} ${unit}`;
+    return `<button class="invest-row" data-invest="${it.id}">
+      <span class="invest-icon">${type.icon}</span>
+      <span class="invest-main"><b>${esc(it.name)} ${investBadge(pnl)}</b><small>${sub}</small></span>
+      <span class="invest-side"><b class="${pnlClass(pnl)}">${fmtSigned(pnl)}</b><small class="${pnlClass(pnl)}">${(rate > 0 ? '+' : '') + rate.toFixed(2)}%</small></span>
+    </button>`;
+  }).join('');
+}
+
+function toggleInvestFields() {
+  const isOther = $('#investType').value === 'other';
+  $('#investMarketWrap').classList.toggle('hidden', isOther);
+  $('#investOtherWrap').classList.toggle('hidden', !isOther);
+}
+
+function openInvest(it) {
+  state.investEditingId = it ? it.id : null;
+  $('#investTitle').textContent = it ? '编辑投资项目' : '新建投资项目';
+  $('#investName').value = it ? it.name : '';
+  $('#investType').value = it ? it.type : 'stock';
+  $('#investCode').value = it ? (it.code || '') : '';
+  $('#investShares').value = it && it.shares != null ? it.shares : '';
+  $('#investCostInput').value = it && it.cost != null ? it.cost : '';
+  $('#investPrice').value = it && it.price != null ? it.price : '';
+  $('#investOtherCost').value = it && it.cost != null ? it.cost : '';
+  $('#investOtherValue').value = it && it.value != null ? it.value : '';
+  $('#investStart').value = it ? (it.startDate || it.updated || today()) : today();
+  $('#investStopProfit').value = it && Number(it.stopProfit) > 0 ? it.stopProfit : '';
+  $('#investStopLoss').value = it && Number(it.stopLoss) > 0 ? it.stopLoss : '';
+  $('#investSyncDividend').checked = !!(it && it.syncDividend);
+  $('#investNote').value = it ? (it.note || '') : '';
+  $('#investDelete').classList.toggle('hidden', !it);
+  toggleInvestFields();
+  $('#investModal').classList.remove('hidden');
+  $('#investName').focus();
+}
+
+function saveInvest() {
+  const name = $('#investName').value.trim();
+  const type = $('#investType').value;
+  if (!name) { toast('先填个名字'); $('#investName').focus(); return; }
+  const item = {
+    id: state.investEditingId || uid(),
+    name,
+    type,
+    note: $('#investNote').value.trim(),
+    startDate: $('#investStart').value || today(),
+    stopProfit: round2(parseFloat($('#investStopProfit').value) || 0),
+    stopLoss: round2(parseFloat($('#investStopLoss').value) || 0),
+    syncDividend: $('#investSyncDividend').checked,
+    updated: today()
+  };
+  if (type === 'other') {
+    const cost = round2(parseFloat($('#investOtherCost').value) || 0);
+    const value = $('#investOtherValue').value.trim() === '' ? NaN : round2(parseFloat($('#investOtherValue').value));
+    if (!(cost > 0)) { toast('填一下投入本金'); return; }
+    if (!isFinite(value) || value < 0) { toast('填一下当前市值'); return; }
+    item.cost = cost;
+    item.value = value;
+  } else {
+    const shares = round2(parseFloat($('#investShares').value) || 0);
+    const cost = round2(parseFloat($('#investCostInput').value) || 0);
+    let price = parseFloat($('#investPrice').value);
+    if (!(shares > 0)) { toast('填一下持有份额'); return; }
+    if (!(cost > 0)) { toast('填一下总成本'); return; }
+    if (!isFinite(price) || price <= 0) price = cost / shares;
+    item.code = $('#investCode').value.trim();
+    item.shares = shares;
+    item.cost = cost;
+    item.price = round2(price);
+  }
+  const list = data.investments;
+  const idx = list.findIndex(x => x.id === item.id);
+  if (idx >= 0) list[idx] = Object.assign({}, list[idx], item);
+  else list.push(Object.assign({ flows: [], valuations: [], realized: 0 }, item));
+  save();
+  $('#investModal').classList.add('hidden');
+  state.investEditingId = null;
+  renderAll();
+  toast(idx >= 0 ? '已更新' : '已添加');
+}
+
+function deleteInvest() {
+  const id = state.investEditingId;
+  if (!id) return;
+  const item = data.investments.find(x => x.id === id);
+  if (!confirm('删除这个投资项目？')) return;
+  if (window.XZBDataSafety && !window.XZBDataSafety.confirmImportant('投资项目', item ? item.name : '')) return;
+  data.investments = data.investments.filter(x => x.id !== id);
+  save();
+  $('#investModal').classList.add('hidden');
+  state.investEditingId = null;
+  renderAll();
+  toast('已删除');
+}
+
+/* ================= 投资详情 / 流水 / 估值 / 配置 ================= */
+function investById(id) {
+  return (data.investments || []).find(x => x.id === id);
+}
+
+function openInvestDetail(id) {
+  const it = investById(id);
+  if (!it) return;
+  state.investDetailId = id;
+  state.investTab = 'overview';
+  switchView('invest-detail');
+  renderInvestDetail();
+}
+
+function renderInvestDetail() {
+  const it = investById(state.investDetailId);
+  if (!it) { switchView('invest'); return; }
+  $('#investDetailName').textContent = it.name;
+  $$('#investTabs button').forEach(b => b.classList.toggle('active', b.dataset.itab === state.investTab));
+  $('#investTabOverview').classList.toggle('hidden', state.investTab !== 'overview');
+  $('#investTabFlows').classList.toggle('hidden', state.investTab !== 'flows');
+  $('#investTabValuations').classList.toggle('hidden', state.investTab !== 'valuations');
+  if (state.investTab === 'overview') $('#investTabOverview').innerHTML = investOverviewHtml(it);
+  else if (state.investTab === 'flows') $('#investTabFlows').innerHTML = investFlowsHtml(it);
+  else $('#investTabValuations').innerHTML = investValuationsHtml(it);
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined || !isFinite(v)) return '—';
+  return (v > 0 ? '+' : '') + v.toFixed(2) + '%';
+}
+
+function investOverviewHtml(it) {
+  const mv = investMarketValue(it);
+  const cost = investCost(it);
+  const floatPnl = investFloatPnl(it);
+  const realized = investRealized(it);
+  const total = investTotalPnl(it);
+  const rate = investRate(it);
+  const days = investHoldingDays(it);
+  const annual = investAnnualized(it);
+  const dd = investMaxDrawdown(it);
+  const avg = it.type !== 'other' && it.type !== 'insurance' && Number(it.shares) > 0 ? cost / Number(it.shares) : null;
+  const stopProfit = Number(it.stopProfit) || 0;
+  const stopLoss = Number(it.stopLoss) || 0;
+  const series = valuationSeries(it);
+
+  const metrics = [
+    ['投入本金', fmt(cost)],
+    ['当前市值', fmt(mv)],
+    ['浮盈 / 浮亏', `<span class="${pnlClass(floatPnl)}">${fmtSigned(floatPnl)}</span>`],
+    ['落袋收益', `<span class="${pnlClass(realized)}">${fmtSigned(realized)}</span>`],
+    ['总收益率', `<span class="${pnlClass(total)}">${fmtPct(rate)}</span>`],
+    ['年化收益', `<span class="${annual === null ? '' : pnlClass(annual)}">${annual === null ? '—' : fmtPct(annual)}</span>`]
+  ];
+  if (days !== null) metrics.push(['持有时长', days + ' 天']);
+  if (avg !== null) metrics.push(['持仓均价', '¥' + fmtNum(avg)]);
+  if (dd !== null) metrics.push(['最大回撤', '−' + dd.toFixed(1) + '%']);
+  if (stopProfit > 0) metrics.push(['止盈线', '+' + stopProfit + '%']);
+  if (stopLoss > 0) metrics.push(['止损线', '−' + stopLoss + '%']);
+
+  return `
+  <div class="card">
+    <div class="card-title">核心指标</div>
+    <div class="metric-grid">
+      ${metrics.map(([k, v]) => `<div class="metric"><small>${k}</small><b>${v}</b></div>`).join('')}
+    </div>
+    <details class="tip"><summary>这些词是什么意思？</summary><p>
+      <b>浮盈 / 浮亏</b>：按现在的价格算出来的账面盈亏，没卖出就不算真赚真亏。<br>
+      <b>落袋收益</b>：已经卖出一部分或收到分红、真正进口袋的钱。<br>
+      <b>年化收益</b>：把这段持有期的收益折算成“一年能赚多少”，满 30 天才算，短期数字会很夸张，别当真。<br>
+      <b>最大回撤</b>：从最高点跌到最低点，最多跌了多少。它衡量“最难受的时候有多难受”。
+    </p></details>
+  </div>
+  <div class="card">
+    <div class="card-title">估值走势</div>
+    ${lineChartSvg(series, total >= 0 ? '#ef4444' : '#10b981')}
+  </div>
+  <div class="card">
+    <div class="card-title">AI 快捷解读 <span class="hint" style="font-weight:400">（本地规则版，不联网）</span></div>
+    <div class="ai-grid">
+      <button data-ai="status">📊 项目现状解读</button>
+      <button data-ai="add">➕ 是否适合追加投入</button>
+      <button data-ai="hold">⏸️ 是否继续持有</button>
+      <button data-ai="exit">🚪 是否考虑止损退出</button>
+      <button data-ai="risk">⚠️ 项目风险提示</button>
+    </div>
+  </div>`;
+}
+
+function valuationSeries(it) {
+  const points = (it.valuations || [])
+    .slice()
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .map(v => ({ date: v.date, value: round2(v.value) }));
+  if (points.length < 2) {
+    points.unshift({ date: it.startDate || it.updated || today(), value: investCost(it) });
+  }
+  points.push({ date: today(), value: investMarketValue(it) });
+  return points;
+}
+
+function lineChartSvg(points, color) {
+  if (!points || points.length < 2) return `<div class="hint">再记一次估值，就能看到走势。</div>`;
+  const W = 300, H = 120, P = 10;
+  const vals = points.map(p => Number(p.value) || 0);
+  let min = Math.min.apply(null, vals);
+  let max = Math.max.apply(null, vals);
+  if (max === min) { max += 1; min -= 1; }
+  const x = i => P + i * (W - 2 * P) / (points.length - 1);
+  const y = v => H - P - (v - min) / (max - min) * (H - 2 * P);
+  const d = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
+  const dots = points.map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="2.5" fill="${color}"/>`).join('');
+  return `<div class="chart-box"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+  </svg></div>
+  <div class="hint">${String(points[0].date).replace(/-/g, '/')} → ${String(points[points.length - 1].date).replace(/-/g, '/')} · 最高 ${fmt(max)} · 最低 ${fmt(min)}</div>`;
+}
+
+function investMaxDrawdown(it) {
+  const vals = (it.valuations || [])
+    .slice()
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .map(v => Number(v.value) || 0);
+  if (vals.length < 2) return null;
+  let peak = vals[0], dd = 0;
+  vals.forEach(v => {
+    if (v > peak) peak = v;
+    if (peak > 0) dd = Math.max(dd, (peak - v) / peak * 100);
+  });
+  return dd;
+}
+
+function investFlowsHtml(it) {
+  const flows = (it.flows || []).slice().sort((a, b) =>
+    String(b.date).localeCompare(String(a.date)) || (b.createdAt || 0) - (a.createdAt || 0));
+  let inSum = 0, outSum = 0, divSum = 0;
+  flows.forEach(f => {
+    const amt = Number(f.amount) || 0;
+    if (f.kind === 'invest' || f.kind === 'add') inSum += amt;
+    else outSum += amt;
+    if (f.kind === 'dividend') divSum += amt;
+  });
+  const rows = flows.map(f => {
+    const t = FLOW_TYPES[f.kind] || FLOW_TYPES.add;
+    const isIn = f.kind === 'redeem' || f.kind === 'dividend';
+    const sign = isIn ? '+' : '−';
+    const extra = Number(f.shares) > 0 ? ` · ${f.shares} ${it.type === 'fund' ? '份' : '股'}` : '';
+    return `<div class="flow-row">
+      <span class="flow-icon">${t.icon}</span>
+      <span class="flow-main"><b>${t.label}</b><small>${String(f.date).replace(/-/g, '/')}${extra}${f.note ? ' · ' + esc(f.note) : ''}</small></span>
+      <span class="flow-amt"><b class="${isIn ? 'profit' : ''}">${sign}${fmt(f.amount)}</b><button data-flow-del="${f.id}">删除</button></span>
+    </div>`;
+  }).join('');
+  return `<div class="card">
+    <div class="card-title">交易流水</div>
+    <div class="summary-row" style="margin-top:0;margin-bottom:10px">
+      <span>累计投入 <b>${fmt(inSum)}</b></span>
+      <span>累计回款 <b class="inc">${fmt(outSum)}</b></span>
+      <span>其中分红 <b class="inc">${fmt(divSum)}</b></span>
+    </div>
+    ${flows.length ? rows : emptyState('🧾', '还没有流水', '新建项目时填的份额 / 成本算第一笔底账，以后加仓、分红、赎回都记在这里')}
+    <button class="btn primary" id="flowAdd">+ 记一笔投入 / 分红 / 赎回</button>
+    <div class="hint">流水只增不改；记错了可以删除，成本和份额会自动回滚。</div>
+  </div>`;
+}
+
+function investValuationsHtml(it) {
+  const vals = (it.valuations || []).slice().sort((a, b) =>
+    String(b.date).localeCompare(String(a.date)) || (b.createdAt || 0) - (a.createdAt || 0));
+  const rows = vals.map(v => `<div class="flow-row">
+    <span class="flow-icon">📅</span>
+    <span class="flow-main"><b>${fmt(v.value)}</b><small>${String(v.date).replace(/-/g, '/')}${it.type !== 'other' && Number(v.price) > 0 ? ' · 现价 ¥' + fmtNum(v.price) : ''}${v.note ? ' · ' + esc(v.note) : ''}</small></span>
+    <span class="flow-amt"><button data-val-del="${v.id}">删除</button></span>
+  </div>`).join('');
+  const dd = investMaxDrawdown(it);
+  return `<div class="card">
+    <div class="card-title">估值更新记录</div>
+    <div class="hint" style="margin:0 0 10px">每记一次，就在走势图里多一个点。最大回撤：${dd === null ? '至少记 2 次才有' : '−' + dd.toFixed(1) + '%'}。</div>
+    ${vals.length ? rows : emptyState('📈', '还没有估值记录', '点下面「更新估值」，把现在的价格或估值记下来')}
+    <button class="btn primary" id="valuationAdd">+ 更新估值</button>
+  </div>`;
+}
+
+/* ---- 交易流水 ---- */
+function updateFlowHint() {
+  const it = investById(state.flowTargetId);
+  if (!it) return;
+  const kind = $('#flowKind').value;
+  const isOther = it.type === 'other';
+  $('#flowSharesWrap').classList.toggle('hidden', isOther || kind === 'dividend');
+  $('#flowPriceWrap').classList.toggle('hidden', isOther || kind === 'dividend');
+  const hint = kind === 'dividend'
+    ? '分红 / 回款记为「落袋收益」，不算浮盈。开了同步开关的话，会自动记一笔收入。'
+    : kind === 'redeem'
+      ? '赎回会减少份额和本金，卖出价与成本的差额记为落袋盈亏。'
+      : isOther
+        ? '追加本金会同时加到「投入本金」和「当前估值」里，之后可以再更新估值。'
+        : '会加进本金和份额，自动重算持仓均价。份额留空时，用金额 ÷ 成交价。';
+  $('#flowHint').textContent = hint;
+}
+
+function openFlowModal(it) {
+  state.flowTargetId = it.id;
+  state.flowKind = 'add';
+  $('#flowKind').value = 'add';
+  $('#flowDate').value = today();
+  $('#flowAmount').value = '';
+  $('#flowShares').value = '';
+  $('#flowPrice').value = '';
+  $('#flowNote').value = '';
+  updateFlowHint();
+  $('#flowModal').classList.remove('hidden');
+}
+
+function addAutoTransaction(type, amount, categoryId, note, date) {
+  const tx = {
+    id: uid(), type, amount: round2(amount), categoryId,
+    accountId: data.settings.lastAccount || (data.accounts[0] && data.accounts[0].id) || null,
+    toAccountId: null, note: note || '', date: date || today(), time: nowTime(),
+    createdAt: Date.now(), auto: true
+  };
+  data.transactions.push(tx);
+  return tx;
+}
+
+function applyFlow(it, f) {
+  const amt = round2(f.amount);
+  const eff = { cost: 0, shares: 0, value: 0, realized: 0 };
+  if (f.kind === 'invest' || f.kind === 'add') {
+    it.cost = round2((Number(it.cost) || 0) + amt);
+    eff.cost = amt;
+    if (it.type === 'other') {
+      it.value = round2((Number(it.value) || 0) + amt);
+      eff.value = amt;
+    } else {
+      const sh = round2(f.shares);
+      it.shares = round2((Number(it.shares) || 0) + sh);
+      eff.shares = sh;
+      if (Number(f.price) > 0) it.price = round2(f.price);
+    }
+  } else if (f.kind === 'dividend') {
+    it.realized = round2((Number(it.realized) || 0) + amt);
+    eff.realized = amt;
+  } else if (f.kind === 'redeem') {
+    if (it.type === 'other') {
+      const v = Number(it.value) || 0;
+      const c = Number(it.cost) || 0;
+      const take = Math.min(amt, v);
+      const basis = v > 0 ? round2(c * take / v) : 0;
+      it.value = round2(Math.max(0, v - take));
+      it.cost = round2(Math.max(0, c - basis));
+      it.realized = round2((Number(it.realized) || 0) + take - basis);
+      eff.value = -take;
+      eff.cost = -basis;
+      eff.realized = take - basis;
+    } else {
+      const shBefore = Number(it.shares) || 0;
+      const c = Number(it.cost) || 0;
+      const sh = round2(Math.min(f.shares, shBefore));
+      const basis = shBefore > 0 ? round2(c * sh / shBefore) : 0;
+      it.shares = round2(shBefore - sh);
+      it.cost = round2(Math.max(0, c - basis));
+      it.realized = round2((Number(it.realized) || 0) + amt - basis);
+      eff.shares = -sh;
+      eff.cost = -basis;
+      eff.realized = amt - basis;
+    }
+  }
+  f.id = f.id || uid();
+  f.eff = eff;
+  f.createdAt = f.createdAt || Date.now();
+  it.flows = it.flows || [];
+  it.flows.push(f);
+  it.updated = today();
+  if (f.kind === 'dividend' && it.syncDividend && amt > 0) {
+    const catId = cat('c_invest') ? 'c_invest' : firstCat('income');
+    const tx = addAutoTransaction('income', amt, catId, '分红 · ' + it.name, f.date);
+    f.txId = tx.id;
+  }
+}
+
+function saveFlow() {
+  const it = investById(state.flowTargetId);
+  if (!it) return;
+  const kind = $('#flowKind').value;
+  const amount = round2(parseFloat($('#flowAmount').value) || 0);
+  if (!(amount > 0)) { toast('先填金额'); $('#flowAmount').focus(); return; }
+  let shares = round2(parseFloat($('#flowShares').value) || 0);
+  let price = round2(parseFloat($('#flowPrice').value) || 0);
+  if (it.type !== 'other' && kind !== 'dividend') {
+    if (!(shares > 0) && price > 0 && kind !== 'redeem') shares = round2(amount / price);
+    if (kind === 'redeem') {
+      if (!(shares > 0)) { toast('赎回要填份额 / 股数'); return; }
+      if (shares > (Number(it.shares) || 0) + 1e-9) { toast('赎回份额不能超过持有'); return; }
+    } else if (!(shares > 0)) {
+      toast('填一下份额 / 股数'); return;
+    }
+    if (!(price > 0) && shares > 0) price = round2(amount / shares);
+  }
+  applyFlow(it, { kind, date: $('#flowDate').value || today(), amount, shares, price, note: $('#flowNote').value.trim() });
+  save();
+  $('#flowModal').classList.add('hidden');
+  renderAll();
+  toast('流水已记下');
+}
+
+function deleteFlow(it, flowId) {
+  const f = (it.flows || []).find(x => x.id === flowId);
+  if (!f) return;
+  if (!confirm('删除这笔流水？本金 / 份额会自动回滚。')) return;
+  const eff = f.eff || {};
+  it.cost = round2((Number(it.cost) || 0) - (Number(eff.cost) || 0));
+  it.shares = round2((Number(it.shares) || 0) - (Number(eff.shares) || 0));
+  it.value = round2((Number(it.value) || 0) - (Number(eff.value) || 0));
+  it.realized = round2((Number(it.realized) || 0) - (Number(eff.realized) || 0));
+  if (f.txId) data.transactions = data.transactions.filter(t => t.id !== f.txId);
+  it.flows = it.flows.filter(x => x.id !== flowId);
+  save();
+  renderAll();
+  toast('已删除并回滚');
+}
+
+/* ---- 估值 ---- */
+function openValuationModal(it) {
+  state.valTargetId = it.id;
+  const isOther = it.type === 'other';
+  $('#valDate').value = today();
+  $('#valPriceWrap').classList.toggle('hidden', isOther);
+  $('#valValueWrap').classList.toggle('hidden', !isOther);
+  $('#valPrice').value = it.type === 'other' ? '' : (it.price || '');
+  $('#valValue').value = it.type === 'other' ? (it.value || '') : '';
+  $('#valNote').value = '';
+  $('#valuationModal').classList.remove('hidden');
+}
+
+function recordValuation(it, date, price, value, note) {
+  const rec = { id: uid(), date, price: round2(price), value: round2(value), note: note || '', createdAt: Date.now() };
+  it.valuations = (it.valuations || []).filter(v => v.date !== date);
+  it.valuations.push(rec);
+  it.valuations.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+}
+
+function saveValuation() {
+  const it = investById(state.valTargetId);
+  if (!it) return;
+  const date = $('#valDate').value || today();
+  let price = 0, value = 0;
+  if (it.type === 'other') {
+    value = round2(parseFloat($('#valValue').value) || 0);
+    if (!(value >= 0)) { toast('填一下当前估值'); return; }
+    if ($('#valValue').value.trim() === '') { toast('填一下当前估值'); return; }
+  } else {
+    price = round2(parseFloat($('#valPrice').value) || 0);
+    if (!(price > 0)) { toast('填一下现价'); return; }
+    value = round2((Number(it.shares) || 0) * price);
+  }
+  if (it.type === 'other') it.value = value;
+  else it.price = price;
+  it.updated = today();
+  recordValuation(it, date, price, value, $('#valNote').value.trim());
+  save();
+  $('#valuationModal').classList.add('hidden');
+  renderAll();
+  toast('估值已更新');
+}
+
+function deleteValuation(it, valId) {
+  if (!confirm('删除这条估值记录？走势图会少一个点，当前价格不受影响。')) return;
+  it.valuations = (it.valuations || []).filter(v => v.id !== valId);
+  save();
+  renderAll();
+  toast('已删除');
+}
+
+/* ---- 资产配置 ---- */
+function renderAlloc() {
+  const assets = allInvestAssets();
+  const total = assets.reduce((s, x) => s + investMarketValue(x), 0);
+  const pieBox = $('#allocPie');
+  const barBox = $('#allocBars');
+  const warnBox = $('#allocWarn');
+  if (!assets.length || !(total > 0)) {
+    pieBox.innerHTML = emptyState('🥧', '还没有资产', '先新建一个投资项目，这里会自动算占比');
+    barBox.innerHTML = '';
+    warnBox.innerHTML = '';
+    return;
+  }
+  const colors = { stock: '#ef4444', fund: '#3b82f6', other: '#8b5cf6', insurance: '#14b8a6' };
+  const groups = {};
+  assets.forEach(it => { groups[it.type] = (groups[it.type] || 0) + investMarketValue(it); });
+  const keys = Object.keys(groups).filter(k => groups[k] > 0).sort((a, b) => groups[b] - groups[a]);
+  let acc = 0;
+  const stops = keys.map(k => {
+    const start = acc / total * 100;
+    acc += groups[k];
+    return `${colors[k] || '#64748b'} ${start.toFixed(2)}% ${(acc / total * 100).toFixed(2)}%`;
+  }).join(', ');
+  pieBox.innerHTML = `<div class="pie-wrap">
+    <div class="pie" style="background:conic-gradient(${stops})"></div>
+    <div class="pie-legend">${keys.map(k => `<div class="legend-row">
+      <span class="dot" style="background:${colors[k] || '#64748b'}"></span>
+      <span class="name">${(INVEST_TYPES[k] || INVEST_TYPES.other).label}</span>
+      <span class="pct">${(groups[k] / total * 100).toFixed(1)}%</span>
+      <span class="amt">${fmt(groups[k])}</span>
+    </div>`).join('')}</div>
+  </div>`;
+
+  const sorted = assets.slice().sort((a, b) => investRate(b) - investRate(a));
+  const maxAbs = Math.max.apply(null, sorted.map(x => Math.abs(investRate(x))).concat([1]));
+  barBox.innerHTML = sorted.map(it => {
+    const rate = investRate(it);
+    const w = Math.max(3, Math.abs(rate) / maxAbs * 100);
+    return `<div class="hbar-row">
+      <span class="hbar-name">${esc(it.name)}</span>
+      <span class="hbar-track"><i style="width:${w.toFixed(1)}%;background:${rate >= 0 ? 'var(--expense)' : 'var(--income)'}"></i></span>
+      <span class="hbar-rate ${pnlClass(rate)}">${fmtPct(rate)}</span>
+    </div>`;
+  }).join('');
+
+  const warnings = [];
+  const largest = assets.slice().sort((a, b) => investMarketValue(b) - investMarketValue(a))[0];
+  const largestPct = largest ? investMarketValue(largest) / total * 100 : 0;
+  if (largestPct >= 50) warnings.push({ level: 'danger', text: `「${largest.name}」占总资产 ${largestPct.toFixed(1)}%，已经超过一半。一个项目出问题，整体会跟着大起大落。` });
+  else if (largestPct >= 35) warnings.push({ level: 'warn', text: `「${largest.name}」占总资产 ${largestPct.toFixed(1)}%，集中度偏高，留意别把鸡蛋放一个篮子。` });
+  const stockCount = assets.filter(x => x.type === 'stock').length;
+  if (stockCount === 1) warnings.push({ level: 'warn', text: '股票只有 1 只，波动会特别集中；分散不是必须，但要知道自己在承担什么。' });
+  const otherPct = assets.filter(x => x.type === 'other').reduce((s, x) => s + investMarketValue(x), 0) / total * 100;
+  if (otherPct >= 30) warnings.push({ level: 'warn', text: `朋友 / 非标项目占 ${otherPct.toFixed(1)}%。这类资产没有公开报价，估值全靠你自己判断，流动性也差。` });
+  if (!warnings.length) warnings.push({ level: '', text: '暂时没发现明显的集中风险。还是要记住：配置比例是你自己定的，不是市场替你定的。' });
+  warnBox.innerHTML = warnings.map(w => `<div class="warn-item ${w.level}">${w.level === 'danger' ? '⚠️ ' : w.level === 'warn' ? '⏰ ' : '✅ '}${esc(w.text)}</div>`).join('');
+}
+
+/* ---- 本地解读 ---- */
+function openAI(title, text, prompt) {
+  $('#aiTitle').textContent = title;
+  $('#aiContent').textContent = text;
+  state.aiPrompt = prompt || text;
+  $('#aiModal').classList.remove('hidden');
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('已复制');
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); toast('已复制'); } catch (e2) { toast('复制失败，请长按选择'); }
+    ta.remove();
+  }
+}
+
+function openInvestAI(kind) {
+  const it = investById(state.investDetailId);
+  if (!it) return;
+  const mv = investMarketValue(it);
+  const cost = investCost(it);
+  const floatPnl = investFloatPnl(it);
+  const realized = investRealized(it);
+  const total = investTotalPnl(it);
+  const rate = investRate(it);
+  const days = investHoldingDays(it);
+  const annual = investAnnualized(it);
+  const dd = investMaxDrawdown(it);
+  const totals = investTotals();
+  const share = totals.value > 0 ? mv / totals.value * 100 : 0;
+  const stopProfit = Number(it.stopProfit) || 0;
+  const stopLoss = Number(it.stopLoss) || 0;
+  const typeLabel = (INVEST_TYPES[it.type] || INVEST_TYPES.other).label;
+  const head = `【${it.name}】${typeLabel}${it.code ? ' ' + it.code : ''}\n`;
+  let text = '';
+  let title = '';
+
+  if (kind === 'status') {
+    title = '📊 项目现状解读';
+    text = head +
+      `投入本金：${fmt(cost)}\n现在账面值：${fmt(mv)}\n` +
+      `浮动盈亏：${fmtSigned(floatPnl)}（${fmtPct(rate)}）\n` +
+      `已经落袋：${fmtSigned(realized)}\n合计盈亏：${fmtSigned(total)}\n` +
+      (days !== null ? `持有：${days} 天\n` : '') +
+      (annual !== null ? `折合年化：${fmtPct(annual)}\n` : '持有不满 30 天，先别算年化。\n') +
+      (dd !== null ? `最大回撤：−${dd.toFixed(1)}%\n` : '') +
+      `\n大白话：浮盈浮亏只是“现在别人愿意出这个价”，没卖就不算真赚真亏；落袋的钱才是已经进口袋的。\n` +
+      `类比：你花 ${fmt(cost)} 买了一家小店的一部分，现在有人报价 ${fmt(mv)}。只要店没转手，这个报价随时会变。`;
+  } else if (kind === 'add') {
+    title = '➕ 是否适合追加投入';
+    text = head +
+      `它现在占你总投资资产的 ${share.toFixed(1)}%。\n` +
+      `当前盈亏：${fmtSigned(total)}（${fmtPct(rate)}）。\n` +
+      (stopLoss > 0 ? `你设的止损线是 −${stopLoss}%。\n` : '你还没设止损线。\n') +
+      `\n适不适合加，先回答 4 件事：\n` +
+      `1. 你是真的懂它，还是因为最近涨了才想加？\n` +
+      `2. 它占你总资产 ${share.toFixed(1)}%，加完会不会太集中？\n` +
+      `3. 如果加完再跌 20%，你睡得着吗？\n` +
+      `4. 你加它的钱，是闲钱，还是下个月要用的钱？\n\n` +
+      `我不会替你做决定。只提醒一句：分批加，比一次 all in 更能让你活得久。`;
+  } else if (kind === 'hold') {
+    title = '⏸️ 是否继续持有';
+    text = head +
+      `当前${total >= 0 ? '赚' : '亏'} ${fmtSigned(total)}（${fmtPct(rate)}）。\n` +
+      `持有 ${days === null ? '未知' : days + ' 天'}${annual !== null ? '，折合年化 ' + fmtPct(annual) : ''}。\n` +
+      `\n继续持有前，先问自己 3 个问题：\n` +
+      `1. 当初买它的理由还在吗？（公司基本面、基金经理、朋友的生意有没有变）\n` +
+      `2. 如果今天没持有它，你还会按现在的价格买吗？\n` +
+      `3. 它在你总资产里占 ${share.toFixed(1)}%，这个比例你舒服吗？\n\n` +
+      `“拿着不动”本身不是策略；能说清楚为什么拿，才是。`;
+  } else if (kind === 'exit') {
+    title = '🚪 是否考虑止损退出';
+    text = head +
+      `当前浮亏：${fmtSigned(floatPnl)}；加上落袋，合计 ${fmtSigned(total)}（${fmtPct(rate)}）。\n` +
+      (stopLoss > 0
+        ? `你设的止损线是 −${stopLoss}%，现在${rate <= -stopLoss ? '已经碰到或跌破' : '还没到'}。\n`
+        : `你还没设止损线，所以现在只能靠感觉判断。\n`) +
+      (dd !== null ? `历史上最大回撤是 −${dd.toFixed(1)}%，你可以问问自己：这次会不会比上次更难受？\n` : '') +
+      `\n止损不是认输，是防止小错变成大错。做决定前先写下：\n` +
+      `· 当初买入的理由是什么？\n· 这个理由现在还成立吗？\n· 如果继续跌 20%，我还能不能按计划生活？\n\n` +
+      `如果跌破你设的线，却还想“再等等”，那通常不是分析，是不甘心。`;
+  } else {
+    title = '⚠️ 项目风险提示';
+    const risks = [];
+    risks.push(`· 集中度：它占你总资产 ${share.toFixed(1)}%${share >= 50 ? '，已经过半，风险很集中' : share >= 35 ? '，偏高' : ''}。`);
+    if (it.type === 'stock') risks.push('· 单只股票没有分散，公司出事就是硬伤；别把生活费和它绑在一起。');
+    if (it.type === 'fund') risks.push('· 基金也会跌，尤其行业主题基金；看过往最大回撤，不只看收益率。');
+    if (it.type === 'other') risks.push('· 朋友 / 非标项目没有公开报价，估值靠估；钱可能一时半会拿不回来，也可能全亏。建议留好书面凭据。');
+    if (!stopLoss) risks.push('· 你还没设止损线，跌的时候容易靠情绪决定。');
+    if (!(it.valuations || []).length) risks.push('· 没有估值记录，走势和回撤都看不出来。');
+    if (dd !== null && dd > 20) risks.push(`· 历史最大回撤 −${dd.toFixed(1)}%，波动不小。`);
+    risks.push('· 这里的数字是你自己填的，不是券商对账单；对账还要以券商 / 合同为准。');
+    text = head + risks.join('\n');
+  }
+
+  const prompt = `你是一个说话直接、不灌鸡汤的理财复盘助手。下面是我的一个投资项目数据，请用大白话帮我分析，不要给确定性承诺，也不要推荐具体买卖点。\n\n项目数据：\n${JSON.stringify(it, null, 2)}\n\n当前统计：\n- 总资产：${fmt(totals.value)}\n- 该项目占比：${share.toFixed(1)}%\n- 浮动盈亏：${fmtSigned(floatPnl)}\n- 落袋收益：${fmtSigned(realized)}\n- 总收益率：${fmtPct(rate)}\n- 持有时长：${days === null ? '未知' : days + ' 天'}\n- 年化：${annual === null ? '无法计算' : fmtPct(annual)}\n\n问题：${title.replace(/^[^\s]+\s*/, '')}。请分点回答，最后给我 3 个需要我自己想清楚的问题。`;
+  openAI(title, text, prompt);
+}
+
+/* 行情：腾讯公开接口（非官方，可能变；拿不到就手动填现价） */
+function quoteSymbol(type, code) {
+  const c = String(code || '').trim().toLowerCase().replace(/\s+/g, '');
+  if (!c) return '';
+  if (type === 'fund') {
+    const f = c.replace(/^(jj|of)/, '');
+    if (/^(51|56|58)\d{4}$/.test(f)) return 'sh' + f;   // 沪市 ETF
+    if (/^15\d{4}$/.test(f)) return 'sz' + f;           // 深市 ETF
+    return 'jj' + f;                                    // 场外基金
+  }
+  if (/^(sh|sz|bj)\d{6}$/.test(c)) return c;
+  if (/^\d{6}$/.test(c)) {
+    if (/^[569]/.test(c)) return 'sh' + c;
+    if (/^[48]/.test(c)) return 'bj' + c;
+    return 'sz' + c;
+  }
+  return c;
+}
+
+async function fetchQuote(type, code) {
+  const sym = quoteSymbol(type, code);
+  if (!sym) throw new Error('没有代码');
+  const res = await fetch('https://qt.gtimg.cn/q=' + encodeURIComponent(sym), { cache: 'no-store' });
+  if (!res.ok) throw new Error('network ' + res.status);
+  const buf = await res.arrayBuffer();
+  const text = new TextDecoder('gbk').decode(buf);
+  const m = text.match(/="([^"]+)"/);
+  if (!m) throw new Error('no data');
+  const f = m[1].split('~');
+  if (sym.indexOf('jj') === 0) {
+    const nav = parseFloat(f[5]);
+    if (!(nav > 0)) throw new Error('bad nav');
+    return { name: f[1] || '', price: nav };
+  }
+  const price = parseFloat(f[3]);
+  if (!(price > 0)) throw new Error('bad price');
+  return { name: f[1] || '', price };
+}
+
+async function fetchIntoPrice() {
+  const type = $('#investType').value;
+  const code = $('#investCode').value.trim();
+  if (!code) { toast('先填股票 / 基金代码'); $('#investCode').focus(); return; }
+  const btn = $('#investQuote');
+  btn.disabled = true;
+  btn.textContent = '查询中…';
+  try {
+    const q = await fetchQuote(type, code);
+    $('#investPrice').value = q.price;
+    if (!$('#investName').value.trim() && q.name) $('#investName').value = q.name;
+    toast((q.name ? q.name + ' · ' : '现价 ') + q.price);
+  } catch (e) {
+    toast('没拿到行情，请手动填现价');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '获取现价';
+  }
+}
+
+async function refreshAllQuotes() {
+  const list = (data.investments || []).filter(x => x.type !== 'other' && x.code);
+  if (!list.length) { toast('先给股票 / 基金填上代码'); return; }
+  const btn = $('#investRefresh');
+  btn.disabled = true;
+  btn.textContent = '更新中…';
+  let ok = 0, fail = 0;
+  for (const it of list) {
+    try {
+      const q = await fetchQuote(it.type, it.code);
+      it.price = round2(q.price);
+      it.updated = today();
+      recordValuation(it, today(), it.price, round2((Number(it.shares) || 0) * it.price), '更新行情');
+      ok++;
+    } catch (e) {
+      fail++;
+    }
+  }
+  btn.disabled = false;
+  btn.textContent = '更新行情';
+  if (ok) { save(); renderAll(); }
+  if (ok && !fail) toast(`已更新 ${ok} 个行情`);
+  else if (ok) toast(`更新了 ${ok} 个，${fail} 个没拿到`);
+  else toast('行情获取失败，请手动填现价');
+}
+
+/* ================= 保险页 ================= */
+const POLICY_TYPES = {
+  medical:  { label: '医疗险', icon: '🏥' },
+  critical: { label: '重疾险', icon: '🛡️' },
+  accident: { label: '意外险', icon: '🚑' },
+  life:     { label: '寿险', icon: '🕊️' },
+  annuity:  { label: '年金 / 养老', icon: '🌱' },
+  car:      { label: '车险', icon: '🚗' },
+  social:   { label: '社保 / 医保', icon: '🧾' },
+  other:    { label: '其他', icon: '📄' }
+};
+
+function fmtShort(n) {
+  const v = Number(n) || 0;
+  if (!(v > 0)) return '—';
+  if (v >= 100000000) return (Math.round(v / 1000000) / 100) + '亿';
+  if (v >= 10000) return (Math.round(v / 1000) / 10) + '万';
+  return String(Math.round(v));
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - t.getTime()) / 86400000);
+}
+
+function addPayPeriod(dateStr, freq) {
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  if (freq === 'month') d.setMonth(d.getMonth() + 1);
+  else d.setFullYear(d.getFullYear() + 1);
+  return fmtDate(d);
+}
+
+function policyYearPremium(p) {
+  const prem = Number(p.premium) || 0;
+  return p.freq === 'month' ? prem * 12 : prem;
+}
+
+function policyPayText(p) {
+  const prem = Number(p.premium) || 0;
+  if (!(prem > 0)) return '未填保费';
+  if (p.freq === 'month') return `月缴 ¥${fmtNum(prem)}`;
+  if (p.freq === 'once') return `趸交 ¥${fmtNum(prem)}`;
+  return `年缴 ¥${fmtNum(prem)}`;
+}
+
+function policyPayBadge(p) {
+  if (p.freq === 'once' || !p.nextPayDate) return '';
+  const d = daysUntil(p.nextPayDate);
+  if (d === null) return '';
+  if (d < 0) return `<span class="badge danger">过期 ${-d} 天</span>`;
+  if (d === 0) return `<span class="badge warn">今天</span>`;
+  if (d <= 30) return `<span class="badge warn">还有 ${d} 天</span>`;
+  return '';
+}
+
+function insuredRank(k) {
+  return k === '本人' ? 0 : k === '爸爸' ? 1 : k === '妈妈' ? 2 : 9;
+}
+function isPolicyActive(p) {
+  if (p.terminated) return false;
+  if (p.endDate) {
+    const d = daysUntil(p.endDate);
+    if (d !== null && d < 0) return false;
+  }
+  return true;
+}
+function policyStatus(p) {
+  if (!isPolicyActive(p)) return { level: 'danger', text: '已终止' };
+  if (p.freq !== 'once' && p.nextPayDate) {
+    const d = daysUntil(p.nextPayDate);
+    if (d !== null && d <= 30) return { level: 'warn', text: d < 0 ? '待缴费（已过期）' : '待缴费' };
+  }
+  return { level: 'ok', text: '有效' };
+}
+function policyStatusBadge(p) {
+  const s = policyStatus(p);
+  return `<span class="status-badge ${s.level}">${s.text}</span>`;
+}
+
+function renderInsurance() {
+  const list = data.policies || [];
+  const people = Array.from(new Set(list.map(p => (p.insured || '').trim() || '未填被保险人')))
+    .sort((a, b) => insuredRank(a) - insuredRank(b) || a.localeCompare(b, 'zh'));
+  if (state.insPerson && people.indexOf(state.insPerson) === -1) state.insPerson = '';
+  const sel = $('#insPersonFilter');
+  sel.innerHTML = '<option value="">全家</option>' + people.map(x =>
+    `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  sel.value = state.insPerson;
+
+  const filtered = state.insPerson
+    ? list.filter(p => ((p.insured || '').trim() || '未填被保险人') === state.insPerson)
+    : list;
+  const active = filtered.filter(isPolicyActive);
+  const coverage = active.reduce((s, p) => s + (Number(p.coverage) || 0), 0);
+  const premium = active.reduce((s, p) => s + policyYearPremium(p), 0);
+  const due = active.filter(p => {
+    if (p.freq === 'once' || !p.nextPayDate) return false;
+    const d = daysUntil(p.nextPayDate);
+    return d !== null && d <= 30;
+  }).length;
+
+  $('#insSummaryLabel').textContent = state.insPerson ? state.insPerson + ' · 年度总保费' : '全家年度总保费';
+  $('#insCoverage').textContent = fmt(coverage);
+  $('#insCount').textContent = active.length;
+  $('#insPremium').textContent = fmt(premium);
+  const dueEl = $('#insDue');
+  dueEl.textContent = due;
+  dueEl.style.color = due > 0 ? 'var(--expense)' : '';
+
+  const alerts = [];
+  active.forEach(p => {
+    if (p.freq !== 'once' && p.nextPayDate) {
+      const d = daysUntil(p.nextPayDate);
+      if (d !== null && d < 0) alerts.push({ level: 'danger', text: `${p.name} 的保费已过期 ${-d} 天` });
+      else if (d === 0) alerts.push({ level: 'warn', text: `${p.name} 今天要缴保费` });
+      else if (d !== null && d <= 30) alerts.push({ level: 'warn', text: `${p.name} 还有 ${d} 天要缴保费` });
+    }
+    if (p.endDate) {
+      const d = daysUntil(p.endDate);
+      if (d !== null && d >= 0 && d <= 60) alerts.push({ level: 'warn', text: `${p.name} 的保障还有 ${d} 天到期` });
+    }
+  });
+  $('#insAlerts').innerHTML = alerts.slice(0, 4).map(a =>
+    `<div class="banner ${a.level === 'danger' ? 'danger' : ''}" style="margin-bottom:8px"><div class="grow">${a.level === 'danger' ? '⚠️' : '⏰'} ${esc(a.text)}</div></div>`
+  ).join('') + (alerts.length > 4 ? `<div class="hint" style="margin:-2px 0 10px">还有 ${alerts.length - 4} 条提醒，往下翻看保单</div>` : '');
+
+  const box = $('#policyList');
+  if (!filtered.length) {
+    box.innerHTML = emptyState('🛡️', state.insPerson ? state.insPerson + ' 还没有保单' : '还没有保单', '点下面「新增保单」，把家里人的保险都录进来');
+    return;
+  }
+
+  const groups = {};
+  filtered.forEach(p => {
+    const key = (p.insured || '').trim() || '未填被保险人';
+    (groups[key] = groups[key] || []).push(p);
+  });
+  const keys = Object.keys(groups).sort((a, b) => insuredRank(a) - insuredRank(b) || a.localeCompare(b, 'zh'));
+
+  box.innerHTML = keys.map(k => {
+    const rows = groups[k].map(p => {
+      const type = POLICY_TYPES[p.type] || POLICY_TYPES.other;
+      const payLine = p.freq === 'once'
+        ? '趸交，无后续缴费'
+        : p.nextPayDate
+          ? `下次缴费 ${p.nextPayDate.replace(/-/g, '/')}${policyPayBadge(p)}`
+          : '未填下次缴费';
+      return `<button class="policy-row" data-policy="${p.id}">
+        <span class="invest-icon">${type.icon}</span>
+        <span class="policy-main">
+          <b>${esc(p.name)} ${policyStatusBadge(p)}</b>
+          <small>${esc(k)} · ${type.label}${p.company ? ' · ' + esc(p.company) : ''}</small>
+          <small>${payLine}</small>
+        </span>
+        <span class="policy-side"><b>${fmt(policyYearPremium(p))}/年</b><small>保额 ${fmtShort(p.coverage)}</small></span>
+      </button>`;
+    }).join('');
+    return `<div class="policy-group-title">${esc(k)} · ${groups[k].length} 张</div>${rows}`;
+  }).join('');
+}
+
+let pendingPolicyAttachment = null;
+
+function parseCoverageItems(text) {
+  return String(text || '').split(/\n+/).map(line => {
+    const s = line.trim();
+    if (!s) return null;
+    const m = s.match(/^(.*?)[\s,:：]*([\d,]+(?:\.\d+)?)\s*(?:元|万)?$/);
+    if (!m) return { name: s, amount: 0 };
+    let amount = parseFloat(m[2].replace(/,/g, '')) || 0;
+    if (/万\s*$/.test(s) && amount < 100000) amount *= 10000;
+    return { name: m[1].trim() || s, amount };
+  }).filter(Boolean);
+}
+
+function coverageItemsText(items) {
+  return (items || []).map(x => `${x.name} ${x.amount}`).join('\n');
+}
+
+function renderPolicyAttachmentInfo() {
+  const box = $('#polAttachInfo');
+  if (!box) return;
+  if (!pendingPolicyAttachment) { box.innerHTML = '<span class="hint" style="margin:0">还没有附件</span>'; return; }
+  const a = pendingPolicyAttachment;
+  box.innerHTML = `<span>📎 ${esc(a.name)}（${Math.round((a.size || 0) / 1024)} KB）</span><button type="button" id="polAttachRemove">移除</button>`;
+}
+
+function openPolicy(p) {
+  state.policyEditingId = p ? p.id : null;
+  $('#policyTitle').textContent = p ? '编辑保单' : '新增保单';
+  $('#polName').value = p ? p.name : '';
+  $('#polCompany').value = p ? (p.company || '') : '';
+  $('#polType').value = p ? (p.type || 'medical') : 'medical';
+  $('#polInsured').value = p ? (p.insured || '') : '本人';
+  $('#polApplicant').value = p ? (p.applicant || '') : '';
+  $('#polCoverage').value = p && p.coverage != null ? p.coverage : '';
+  $('#polCoverageItems').value = p ? coverageItemsText(p.coverageItems) : '';
+  $('#polDeductible').value = p && Number(p.deductible) > 0 ? p.deductible : '';
+  $('#polPremium').value = p && p.premium != null ? p.premium : '';
+  $('#polFreq').value = p ? (p.freq || 'year') : 'year';
+  $('#polPayYears').value = p ? (p.payYears || '') : '';
+  $('#polStart').value = p ? (p.startDate || '') : '';
+  $('#polEnd').value = p ? (p.endDate || '') : '';
+  $('#polNext').value = p ? (p.nextPayDate || '') : '';
+  $('#polCashValue').value = p && Number(p.cashValue) > 0 ? p.cashValue : '';
+  $('#polExclusions').value = p ? (p.exclusions || '') : '';
+  $('#polBeneficiary').value = p ? (p.beneficiary || '') : '';
+  $('#polNo').value = p ? (p.policyNo || '') : '';
+  $('#polNote').value = p ? (p.note || '') : '';
+  $('#polSyncExpense').checked = !!(p && p.syncExpense);
+  $('#polSyncAsset').checked = !!(p && p.syncAsset);
+  $('#polTerminated').checked = !!(p && p.terminated);
+  pendingPolicyAttachment = p ? (p.attachment || null) : null;
+  $('#polFile').value = '';
+  renderPolicyAttachmentInfo();
+  $('#polDelete').classList.toggle('hidden', !p);
+  const showPaid = !!(p && p.freq !== 'once' && p.nextPayDate);
+  $('#polPaid').classList.toggle('hidden', !showPaid);
+  $('#polPaid').hidden = !showPaid;
+  $('#policyModal').classList.remove('hidden');
+  $('#polName').focus();
+}
+
+function savePolicy() {
+  const name = $('#polName').value.trim();
+  if (!name) { toast('先填保单名称'); $('#polName').focus(); return; }
+  const freq = $('#polFreq').value;
+  const coverage = round2(parseFloat($('#polCoverage').value) || 0);
+  const premium = round2(parseFloat($('#polPremium').value) || 0);
+  if (coverage < 0 || premium < 0) { toast('保额和保费不能是负数'); return; }
+  const startDate = $('#polStart').value || '';
+  const endDate = $('#polEnd').value || '';
+  let nextPayDate = $('#polNext').value || '';
+  if (startDate && endDate && endDate < startDate) { toast('结束日期不能早于开始日期'); return; }
+  if (freq === 'once') nextPayDate = '';
+  const item = {
+    id: state.policyEditingId || uid(),
+    name,
+    company: $('#polCompany').value.trim(),
+    type: $('#polType').value,
+    insured: $('#polInsured').value.trim() || '本人',
+    applicant: $('#polApplicant').value.trim(),
+    coverage,
+    coverageItems: parseCoverageItems($('#polCoverageItems').value),
+    deductible: round2(parseFloat($('#polDeductible').value) || 0),
+    premium,
+    freq,
+    payYears: $('#polPayYears').value.trim(),
+    startDate,
+    endDate,
+    nextPayDate,
+    cashValue: round2(parseFloat($('#polCashValue').value) || 0),
+    exclusions: $('#polExclusions').value.trim(),
+    beneficiary: $('#polBeneficiary').value.trim(),
+    policyNo: $('#polNo').value.trim(),
+    note: $('#polNote').value.trim(),
+    syncExpense: $('#polSyncExpense').checked,
+    syncAsset: $('#polSyncAsset').checked,
+    terminated: $('#polTerminated').checked,
+    attachment: pendingPolicyAttachment,
+    updated: today()
+  };
+  const list = data.policies;
+  const idx = list.findIndex(x => x.id === item.id);
+  if (idx >= 0) list[idx] = Object.assign({}, list[idx], item);
+  else list.push(item);
+  save();
+  $('#policyModal').classList.add('hidden');
+  state.policyEditingId = null;
+  renderAll();
+  toast(idx >= 0 ? '已更新' : '已添加');
+}
+
+function deletePolicy() {
+  const id = state.policyEditingId;
+  if (!id) return;
+  const policy = data.policies.find(x => x.id === id);
+  if (!confirm('删除这张保单？')) return;
+  if (window.XZBDataSafety && !window.XZBDataSafety.confirmImportant('保单', policy ? policy.name : '')) return;
+  data.policies = data.policies.filter(x => x.id !== id);
+  save();
+  $('#policyModal').classList.add('hidden');
+  state.policyEditingId = null;
+  renderAll();
+  toast('已删除');
+}
+
+function markPolicyPaidById(id) {
+  const p = data.policies.find(x => x.id === id);
+  if (!p) return false;
+  if (p.freq === 'once' || !p.nextPayDate) { toast('这张保单没有下一期缴费'); return false; }
+  const prev = p.nextPayDate;
+  const amount = round2(Number(p.premium) || 0);
+  let next = prev;
+  let guard = 0;
+  do {
+    next = addPayPeriod(next, p.freq);
+    guard++;
+  } while (daysUntil(next) !== null && daysUntil(next) <= 0 && guard < 60);
+  const rec = { id: uid(), date: today(), amount, note: '保费', prevNext: prev, createdAt: Date.now() };
+  if (p.syncExpense && amount > 0) {
+    const catId = cat('c_insurance') ? 'c_insurance' : firstCat('expense');
+    const tx = addAutoTransaction('expense', amount, catId, '保费 · ' + p.name, today());
+    rec.txId = tx.id;
+  }
+  p.paymentHistory = p.paymentHistory || [];
+  p.paymentHistory.push(rec);
+  p.nextPayDate = next;
+  p.updated = today();
+  save();
+  if (!$('#policyModal').classList.contains('hidden')) {
+    $('#polNext').value = next;
+    $('#polPaid').classList.add('hidden');
+    $('#polPaid').hidden = true;
+  }
+  renderAll();
+  toast('已记本期缴费，下次 ' + next.replace(/-/g, '/'));
+  return true;
+}
+
+function markPolicyPaid() {
+  if (state.policyEditingId) markPolicyPaidById(state.policyEditingId);
+}
+
+function undoLatestPayment(p) {
+  const hist = p.paymentHistory || [];
+  if (!hist.length) { toast('还没有缴费记录'); return; }
+  if (!confirm('撤销上一期已缴？会同时删掉自动记的支出。')) return;
+  const last = hist[hist.length - 1];
+  if (last.txId) data.transactions = data.transactions.filter(t => t.id !== last.txId);
+  if (last.prevNext) p.nextPayDate = last.prevNext;
+  p.paymentHistory = hist.slice(0, -1);
+  p.updated = today();
+  save();
+  renderAll();
+  toast('已撤销上一期');
+}
+
+/* ================= 保单详情 / 全家汇总 / 本地解读 ================= */
+function openPolicyDetail(id) {
+  const p = data.policies.find(x => x.id === id);
+  if (!p) return;
+  state.policyDetailId = id;
+  state.policyTab = 'overview';
+  switchView('policy-detail');
+  renderPolicyDetail();
+}
+
+function renderPolicyDetail() {
+  const p = data.policies.find(x => x.id === state.policyDetailId);
+  if (!p) { switchView('insurance'); return; }
+  $('#policyDetailName').textContent = p.name;
+  $$('#policyTabs button').forEach(b => b.classList.toggle('active', b.dataset.ptab === state.policyTab));
+  $('#policyTabOverview').classList.toggle('hidden', state.policyTab !== 'overview');
+  $('#policyTabPayments').classList.toggle('hidden', state.policyTab !== 'payments');
+  $('#policyTabClaims').classList.toggle('hidden', state.policyTab !== 'claims');
+  if (state.policyTab === 'overview') $('#policyTabOverview').innerHTML = policyOverviewHtml(p);
+  else if (state.policyTab === 'payments') $('#policyTabPayments').innerHTML = policyPaymentsHtml(p);
+  else $('#policyTabClaims').innerHTML = policyClaimsHtml(p);
+}
+
+function policyOverviewHtml(p) {
+  const type = POLICY_TYPES[p.type] || POLICY_TYPES.other;
+  const items = (p.coverageItems || []).length
+    ? p.coverageItems.map(x => `${esc(x.name)}：${x.amount > 0 ? fmtShort(x.amount) + '（' + fmt(x.amount) + '）' : '未填金额'}`).join('<br>')
+    : '未填分项保额';
+  const attach = p.attachment
+    ? `<div class="attach-row"><span>📎 ${esc(p.attachment.name)}</span><a href="#" data-attach="${p.id}">查看附件</a></div>`
+    : '<span class="hint" style="margin:0">没有附件</span>';
+  return `<div class="card">
+    <div class="card-title row-title"><span>保单信息 ${policyStatusBadge(p)}</span><span class="hint" style="margin:0">${type.icon} ${type.label}</span></div>
+    <div class="detail-line"><span>被保险人</span><b>${esc(p.insured || '—')}</b></div>
+    <div class="detail-line"><span>投保人</span><b>${esc(p.applicant || '—')}</b></div>
+    <div class="detail-line"><span>保险公司</span><b>${esc(p.company || '—')}</b></div>
+    <div class="detail-line"><span>保单号</span><b>${esc(p.policyNo || '—')}</b></div>
+    <div class="detail-line"><span>受益人</span><b>${esc(p.beneficiary || '—')}</b></div>
+    <div class="detail-line"><span>总保额 <span class="help">?</span></span><b>${fmt(p.coverage)}</b></div>
+    <div class="detail-line"><span>分项保额</span><b>${items}</b></div>
+    <div class="detail-line"><span>每期保费</span><b>${policyPayText(p)}</b></div>
+    <div class="detail-line"><span>缴费年限</span><b>${esc(p.payYears || '—')}</b></div>
+    <div class="detail-line"><span>保障期间</span><b>${(p.startDate || '—').replace(/-/g, '/')} → ${p.endDate ? p.endDate.replace(/-/g, '/') : '终身 / 长期'}</b></div>
+    <div class="detail-line"><span>下次缴费</span><b>${p.nextPayDate ? p.nextPayDate.replace(/-/g, '/') + policyPayBadge(p) : '—'}</b></div>
+    <div class="detail-line"><span>免赔额 <span class="help">?</span></span><b>${Number(p.deductible) > 0 ? fmt(p.deductible) : '—'}</b></div>
+    <div class="detail-line"><span>现金价值 <span class="help">?</span></span><b>${Number(p.cashValue) > 0 ? fmt(p.cashValue) : '—'}</b></div>
+    <div class="detail-line"><span>免责 / 特别约定</span><b>${esc(p.exclusions || '—')}</b></div>
+    <div class="detail-line"><span>备注</span><b>${esc(p.note || '—')}</b></div>
+    <div style="margin-top:10px">${attach}</div>
+    <details class="tip"><summary>这些词是什么意思？</summary><p>
+      <b>保额</b>：出事时最多能赔的钱，不等于你一定能拿到。<br>
+      <b>免赔额</b>：医疗险里，自己先掏够这个数，超出的部分才开始赔。<br>
+      <b>现金价值</b>：储蓄险退保时能拿回的钱，前期通常低于已交保费。<br>
+      <b>等待期 / 免责</b>：刚买的一段时间内、或某些情况，保险公司不赔，以合同为准。
+    </p></details>
+  </div>
+  <div class="card">
+    <div class="card-title">AI 快捷解读 <span class="hint" style="font-weight:400">（本地规则版，不联网）</span></div>
+    <div class="ai-grid">
+      <button data-pai="summary">📄 提炼核心保障</button>
+      <button data-pai="exclusions">⚠️ 免责 / 坑点提示</button>
+      <button data-pai="gap">🧮 评估保障缺口</button>
+      <button data-pai="renew">✅ 是否续保 / 保留</button>
+    </div>
+  </div>`;
+}
+
+function futureSchedule(p, count) {
+  if (p.freq === 'once' || !p.nextPayDate) return [];
+  const arr = [];
+  let d = p.nextPayDate;
+  for (let i = 0; i < count; i++) {
+    if (p.endDate && d > p.endDate) break;
+    arr.push(d);
+    d = addPayPeriod(d, p.freq);
+  }
+  return arr;
+}
+
+function policyPaymentsHtml(p) {
+  const hist = (p.paymentHistory || []).slice().sort((a, b) =>
+    String(b.date).localeCompare(String(a.date)) || (b.createdAt || 0) - (a.createdAt || 0));
+  const rows = hist.map(x => `<div class="flow-row">
+    <span class="flow-icon">✅</span>
+    <span class="flow-main"><b>${fmt(x.amount)}</b><small>${String(x.date).replace(/-/g, '/')} · 已缴${x.txId ? ' · 已同步日常支出' : ''}${x.note ? ' · ' + esc(x.note) : ''}</small></span>
+  </div>`).join('');
+  const schedule = futureSchedule(p, 6);
+  const scheduleRows = schedule.map((d, i) => {
+    const left = daysUntil(d);
+    const tag = left !== null && left < 0 ? `已过期 ${-left} 天` : left === 0 ? '今天' : `还有 ${left} 天`;
+    return `<div class="schedule-row"><span>第 ${i + 1} 期 · ${d.replace(/-/g, '/')}</span><span class="due">${p.freq === 'month' ? '月缴 ' : '年缴 '}${fmt(p.premium)} · ${tag}</span></div>`;
+  }).join('');
+  return `<div class="card">
+    <div class="card-title">缴费记录</div>
+    ${hist.length ? rows : emptyState('🧾', '还没有缴费记录', '点下面「记本期已缴」，会自动顺延下一期')}
+    ${p.syncExpense ? '<div class="hint" style="margin-top:8px">已开启同步：每次记已缴会自动记一笔日常支出（保险分类）。</div>' : '<div class="hint" style="margin-top:8px">没开同步：这里的缴费只是保单记录，不会进日常账本。可在「编辑」里打开。</div>'}
+    <button class="btn primary" id="policyMarkPaid" ${(p.freq === 'once' || !p.nextPayDate) ? 'disabled' : ''}>✓ 记本期已缴</button>
+    ${hist.length ? '<button class="btn" id="policyUndoPaid">撤销上一期已缴</button>' : ''}
+  </div>
+  <div class="card">
+    <div class="card-title">未来缴费计划</div>
+    ${schedule.length ? scheduleRows : '<div class="hint" style="margin:0">趸交或没有下次缴费日期，暂无计划。</div>'}
+  </div>`;
+}
+
+function policyClaimsHtml(p) {
+  const items = (p.coverageItems || []).length
+    ? p.coverageItems.map(x => `<div class="detail-line"><span>${esc(x.name)}</span><b>${x.amount > 0 ? fmt(x.amount) : '—'}</b></div>`).join('')
+    : `<div class="detail-line"><span>总保额</span><b>${fmt(p.coverage)}</b></div>`;
+  const claims = (p.claims || []).slice().sort((a, b) =>
+    String(b.date).localeCompare(String(a.date)) || (b.createdAt || 0) - (a.createdAt || 0));
+  const claimRows = claims.map(c => {
+    const label = { pending: '待申请', review: '审核中', paid: '已赔付', rejected: '拒赔' }[c.status] || c.status;
+    const lv = c.status === 'paid' ? 'ok' : c.status === 'rejected' ? 'danger' : 'warn';
+    return `<div class="flow-row">
+      <span class="flow-icon">${c.status === 'paid' ? '💵' : '📄'}</span>
+      <span class="flow-main"><b>${esc(c.reason || '理赔')} <span class="status-badge ${lv}">${label}</span></b><small>${String(c.date).replace(/-/g, '/')}${Number(c.amount) > 0 ? ' · ' + fmt(c.amount) : ''}${c.note ? ' · ' + esc(c.note) : ''}</small></span>
+      <span class="flow-amt"><button data-claim-del="${c.id}">删除</button></span>
+    </div>`;
+  }).join('');
+  return `<div class="card">
+    <div class="card-title">核心保障</div>
+    ${items}
+    <div class="detail-line"><span>免赔额</span><b>${Number(p.deductible) > 0 ? fmt(p.deductible) : '—'}</b></div>
+    <div class="detail-line"><span>免责 / 特别约定</span><b>${esc(p.exclusions || '—')}</b></div>
+    <div class="hint">这里只做记录，是否理赔、赔多少，以保险合同和保险公司审核为准。</div>
+  </div>
+  <div class="card">
+    <div class="card-title">历史理赔记录</div>
+    ${claims.length ? claimRows : emptyState('📄', '还没有理赔记录', '用不上最好；万一发生，把日期、金额、结果记下来')}
+    <button class="btn primary" id="claimAdd">+ 记一笔理赔</button>
+  </div>
+  <div class="card">
+    <div class="card-title">AI 快捷解读 <span class="hint" style="font-weight:400">（本地规则版）</span></div>
+    <div class="ai-grid">
+      <button data-pai="summary">📄 提炼核心保障</button>
+      <button data-pai="exclusions">⚠️ 免责 / 坑点提示</button>
+      <button data-pai="gap">🧮 评估保障缺口</button>
+      <button data-pai="renew">✅ 是否续保 / 保留</button>
+    </div>
+  </div>`;
+}
+
+function openAttachment(p) {
+  if (!p || !p.attachment || !p.attachment.data) { toast('没有附件'); return; }
+  try {
+    const bin = atob(p.attachment.data);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const blob = new Blob([arr], { type: p.attachment.mime || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
+    if (!w) toast('浏览器拦截了新窗口，请允许弹窗');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    toast('附件打不开（可能太大或格式不支持）');
+  }
+}
+
+function annualIncomeEstimate() {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 6);
+  const sum = (data.transactions || [])
+    .filter(t => t.type === 'income' && t.date && new Date(t.date + 'T00:00:00') >= cutoff)
+    .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  return sum > 0 ? sum / 6 * 12 : 0;
+}
+
+function renderFamilySummary() {
+  const list = (data.policies || []).filter(isPolicyActive);
+  const table = $('#familyTable');
+  const warnBox = $('#familyWarnings');
+  const premiumBox = $('#familyPremium');
+  if (!list.length) {
+    table.innerHTML = emptyState('👪', '还没有有效保单', '先新增保单，再来看全家的保障分布');
+    warnBox.innerHTML = '';
+    premiumBox.innerHTML = '';
+    return;
+  }
+  const people = Array.from(new Set(list.map(p => (p.insured || '').trim() || '未填被保险人')))
+    .sort((a, b) => insuredRank(a) - insuredRank(b) || a.localeCompare(b, 'zh'));
+  const sumOf = (ps, types) => ps.filter(p => types.indexOf(p.type) !== -1).reduce((s, p) => s + (Number(p.coverage) || 0), 0);
+  const rows = people.map(name => {
+    const ps = list.filter(p => ((p.insured || '').trim() || '未填被保险人') === name);
+    return `<tr>
+      <td>${esc(name)}</td>
+      <td>${fmtShort(sumOf(ps, ['medical', 'social']))}</td>
+      <td>${fmtShort(sumOf(ps, ['critical']))}</td>
+      <td>${fmtShort(sumOf(ps, ['life']))}</td>
+      <td>${fmtShort(sumOf(ps, ['accident']))}</td>
+      <td>${fmt(ps.reduce((s, p) => s + policyYearPremium(p), 0))}</td>
+    </tr>`;
+  }).join('');
+  table.innerHTML = `<div class="table-wrap"><table class="summary-table">
+    <thead><tr><th>被保人</th><th>医疗 / 医保</th><th>重疾</th><th>寿险</th><th>意外</th><th>年保费</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>
+  <div class="hint">保额是各保单相加的粗略值，不同险种不能简单叠加成“能赔这么多”。</div>`;
+
+  const warnings = [];
+  people.forEach(name => {
+    const ps = list.filter(p => ((p.insured || '').trim() || '未填被保险人') === name);
+    ['medical', 'critical', 'accident', 'life'].forEach(type => {
+      const same = ps.filter(p => p.type === type);
+      if (same.length > 1) warnings.push({ level: 'warn', text: `${name} 有 ${same.length} 张${POLICY_TYPES[type].label}，注意是否重复投保、能不能重复报销。` });
+    });
+    if (!ps.some(p => p.type === 'medical' || p.type === 'social')) warnings.push({ level: 'danger', text: `${name} 没有医疗险 / 医保记录，大病支出可能全自己扛。` });
+    if (!ps.some(p => p.type === 'critical')) warnings.push({ level: 'warn', text: `${name} 没有重疾险记录。重疾险是确诊后直接给一笔钱，用来补收入中断。` });
+    if (!ps.some(p => p.type === 'accident')) warnings.push({ level: 'warn', text: `${name} 没有意外险记录。意外险通常很便宜，杠杆高。` });
+    if (!ps.some(p => p.type === 'life')) warnings.push({ level: '', text: `${name} 没有寿险记录。家里有房贷、孩子或需要你养的人时，再考虑寿险。` });
+  });
+  warnBox.innerHTML = warnings.length
+    ? warnings.map(w => `<div class="warn-item ${w.level}">${w.level === 'danger' ? '⚠️ ' : w.level === 'warn' ? '⏰ ' : 'ℹ️ '}${esc(w.text)}</div>`).join('')
+    : '<div class="warn-item">暂时没发现明显的重复或缺口。保额够不够，还要看家里的负债和收入。</div>';
+
+  const totalPremium = list.reduce((s, p) => s + policyYearPremium(p), 0);
+  const income = annualIncomeEstimate();
+  let html = `<div class="detail-line"><span>全家年交保费</span><b>${fmt(totalPremium)}</b></div>`;
+  if (income > 0) {
+    const ratio = totalPremium / income * 100;
+    html += `<div class="detail-line"><span>按近 6 个月收入估算</span><b>约占年收入 ${ratio.toFixed(1)}%</b></div>`;
+    html += `<div class="warn-item ${ratio > 15 ? 'danger' : ratio > 10 ? 'warn' : ''}" style="margin-top:10px">${ratio > 10 ? '保费占比偏高。先保大人、先保医疗和意外，别为了“返本”买太贵的储蓄险。' : '保费占比在常见参考范围内。真正要看的是保额够不够，不是越贵越好。'}</div>`;
+  } else {
+    html += '<div class="hint">日常账本里还没有足够的收入记录，暂时算不出保费占收入的比例。</div>';
+  }
+  premiumBox.innerHTML = html;
+}
+
+function openPolicyAI(kind) {
+  const p = data.policies.find(x => x.id === state.policyDetailId);
+  if (!p) return;
+  const type = POLICY_TYPES[p.type] || POLICY_TYPES.other;
+  const itemsText = (p.coverageItems || []).length
+    ? p.coverageItems.map(x => `${x.name} ${x.amount > 0 ? fmt(x.amount) : '金额未填'}`).join('；')
+    : '未填分项保额';
+  const endDays = p.endDate ? daysUntil(p.endDate) : null;
+  const paid = policyPaidTotal(p);
+  const head = `【${p.name}】${type.label} · 被保险人：${p.insured || '—'}\n`;
+  let title = '', text = '';
+
+  if (kind === 'summary') {
+    title = '📄 提炼核心保障';
+    text = head +
+      `保险公司：${p.company || '—'}\n总保额：${fmt(p.coverage)}\n分项保额：${itemsText}\n` +
+      `保费：${policyPayText(p)}${p.payYears ? ' · 缴 ' + p.payYears : ''}\n` +
+      `保障期：${p.startDate || '—'} → ${p.endDate || '终身 / 长期'}\n` +
+      (Number(p.deductible) > 0 ? `免赔额：${fmt(p.deductible)}\n` : '') +
+      `\n大白话：这张保单主要保的是「${type.label}」。出事时最多按保额 ${fmt(p.coverage)} 这个上限来赔，` +
+      `不是一定赔这么多；医疗险通常要先扣免赔额，再按比例报销。`;
+  } else if (kind === 'exclusions') {
+    title = '⚠️ 免责 / 坑点提示';
+    const tips = {
+      medical: ['免赔额：自己先掏够这个数才开始赔。', '既往症、等待期内生病，通常不赔。', '医院范围：多数要求公立二级及以上，特需 / 私立不一定报。', '续保条件：今年赔过，明年还能不能续，要看合同。', '社保内 / 外用药、进口药是否报销，差别很大。'],
+      critical: ['等待期（常见 90～180 天）内确诊不赔。', '疾病定义很严格，不是“得了重病”就赔。', '轻症 / 中症赔付比例、是否分组多次赔，影响很大。', '既往症、遗传性疾病可能除外。'],
+      accident: ['职业类别受限，高危职业可能不保。', '意外医疗是否含门诊、有没有免赔额。', '猝死通常不算意外，除非单独写明。'],
+      life: ['等待期内身故通常只退保费。', '两年内自杀、故意犯罪等免责。', '是否含全残责任，要看条款。'],
+      annuity: ['前期退保现金价值可能低于已交保费。', '领取年龄、保证领取年限要看清。', '演示收益不是保证收益。'],
+      car: ['医保外用药、指定修理厂、免赔率要看清楚。', '酒驾、无证驾驶等属于免责。'],
+      social: ['起付线以下不报，封顶线以上不报。', '目录外药品、耗材通常不报。', '异地就医要先备案。'],
+      other: ['先看免责条款和等待期。', '确认保障范围、赔付比例和续保条件。']
+    };
+    const list = (tips[p.type] || tips.other).map((x, i) => `${i + 1}. ${x}`).join('\n');
+    text = head + `合同里最重要的不是“保什么”，而是“不保什么”。\n\n常见坑点：\n${list}\n` +
+      (p.exclusions ? `\n你自己记的免责 / 特别约定：\n${p.exclusions}` : '\n你还没填免责 / 特别约定。建议把合同里的免责部分抄几条进来。') +
+      `\n\n以上是通用提醒，最终以保单合同为准。`;
+  } else if (kind === 'gap') {
+    title = '🧮 评估保障缺口';
+    const ps = (data.policies || []).filter(x => isPolicyActive(x) && ((x.insured || '').trim() || '未填被保险人') === ((p.insured || '').trim() || '未填被保险人'));
+    const sum = types => ps.filter(x => types.indexOf(x.type) !== -1).reduce((s, x) => s + (Number(x.coverage) || 0), 0);
+    const med = sum(['medical', 'social']);
+    const cri = sum(['critical']);
+    const life = sum(['life']);
+    const acc = sum(['accident']);
+    const gaps = [];
+    if (!med) gaps.push('医疗 / 医保：没有记录，大病住院可能全自己掏。');
+    if (!cri) gaps.push('重疾：没有记录，生病后收入中断没人补。');
+    if (!acc) gaps.push('意外：没有记录，意外险通常便宜、杠杆高。');
+    if (!life) gaps.push('寿险：没有记录；如果家里有房贷或需要你养的人，可以考虑。');
+    text = head +
+      `目前 ${p.insured || '这位家人'} 名下有效保额：\n医疗 / 医保 ${fmtShort(med)}；重疾 ${fmtShort(cri)}；寿险 ${fmtShort(life)}；意外 ${fmtShort(acc)}。\n\n` +
+      (gaps.length ? '可能的缺口：\n' + gaps.map((x, i) => `${i + 1}. ${x}`).join('\n') : '四类基础保障都有记录，没有明显空白。') +
+      `\n\n参考常识（不是标准答案）：医疗险看报销上限和续保；重疾险保额常见 30～50 万；寿险保额覆盖房贷 + 3～5 年家庭开支。具体要按你家的负债和收入算。`;
+  } else {
+    title = '✅ 是否续保 / 保留';
+    text = head +
+      `保障到期：${p.endDate ? p.endDate + (endDays !== null ? `（${endDays < 0 ? '已过期 ' + (-endDays) + ' 天' : '还有 ' + endDays + ' 天'}）` : '') : '终身 / 长期'}\n` +
+      `下次缴费：${p.nextPayDate || '—'}\n保费：${policyPayText(p)}\n已缴记录合计：${fmt(paid)}\n` +
+      (Number(p.cashValue) > 0 ? `现金价值：${fmt(p.cashValue)}\n` : '') +
+      `\n续保 / 保留前先看 4 件事：\n` +
+      `1. 这份保障现在还用得上吗？保额够不够？\n` +
+      `2. 保费占家庭年收入多少？会不会影响生活？\n` +
+      `3. 换新产品要不要重新健康告知？身体情况还过得了吗？\n` +
+      `4. 储蓄险提前退保会不会亏本金？现金价值是多少？\n\n` +
+      `医疗险和意外险通常优先保留；储蓄险要看现金价值和缴费压力，别为了“返本”硬扛。`;
+  }
+
+  const prompt = `你是一个说话直接、不卖保险的保险条款解读助手。下面是我的保单数据，请用大白话帮我分析，不要推荐具体产品，也不要说“一定赔”。\n\n保单数据：\n${JSON.stringify(p, null, 2)}\n\n问题：${title.replace(/^[^\s]+\s*/, '')}。请分点回答，并指出合同里我应该重点核对的地方。`;
+  openAI(title, text, prompt);
+}
+
+function renderAll() {
+  ensureData();
+  renderBills();
+  renderStats();
+  renderInvest();
+  renderInsurance();
+  renderBooks();
+  renderMe();
+  if (state.view === 'invest-detail') renderInvestDetail();
+  if (state.view === 'invest-alloc') renderAlloc();
+  if (state.view === 'policy-detail') renderPolicyDetail();
+  if (state.view === 'ins-family') renderFamilySummary();
+}
+
+/* ================= 记账弹层 ================= */
+const sheet = $('#sheet');
+const amountText = $('#amountText');
+const catGrid = $('#catGrid');
+const noteInput = $('#noteInput');
+const dateInput = $('#dateInput');
+const accountSelect = $('#accountSelect');
+const accountSelect2 = $('#accountSelect2');
+const toAccountSelect = $('#toAccountSelect');
+const transferFields = $('#transferFields');
+
+function amountShown() {
+  if (state.amount === '0') return '0.00';
+  if (state.amount.endsWith('.')) return state.amount + '00';
+  return state.amount;
+}
+
+function updateAmount() {
+  amountText.textContent = amountShown();
+}
+
+function pressKey(k) {
+  if (k === 'del') {
+    state.amount = state.amount.length > 1 ? state.amount.slice(0, -1) : '0';
+  } else if (k === '.') {
+    if (!state.amount.includes('.')) state.amount += '.';
+  } else {
+    if (state.amount === '0') state.amount = k;
+    else {
+      const parts = state.amount.split('.');
+      if (parts[1] !== undefined && parts[1].length >= 2) return;
+      if (parts[1] === undefined && parts[0].length >= 9) return;
+      state.amount += k;
+    }
+  }
+  updateAmount();
+}
+
+function openSheet(type, tx) {
+  state.sheetType = type || 'expense';
+  state.editingId = tx ? tx.id : null;
+  if (tx) {
+    state.amount = String(tx.amount);
+    state.catId = tx.categoryId || null;
+    state.accountId = tx.accountId || (data.accounts[0] && data.accounts[0].id);
+    state.toAccountId = tx.toAccountId || null;
+    state.note = tx.note || '';
+    state.date = tx.date || today();
+    state.time = tx.time || nowTime();
+  } else {
+    state.amount = '0';
+    state.note = '';
+    state.date = today();
+    state.time = nowTime();
+    state.accountId = data.settings.lastAccount || (data.accounts[0] && data.accounts[0].id);
+    state.toAccountId = (data.accounts.find(a => a.id !== state.accountId) || {}).id || null;
+    if (state.sheetType === 'expense') state.catId = data.settings.lastExpenseCat || firstCat('expense');
+    else if (state.sheetType === 'income') state.catId = data.settings.lastIncomeCat || firstCat('income');
+    else state.catId = null;
+  }
+  renderSheet();
+  sheet.classList.remove('hidden');
+}
+
+function closeSheet() {
+  sheet.classList.add('hidden');
+}
+
+function renderSheet() {
+  $$('#typeTabs button').forEach(b => b.classList.toggle('active', b.dataset.type === state.sheetType));
+  const isTransfer = state.sheetType === 'transfer';
+  catGrid.classList.toggle('hidden', isTransfer);
+  transferFields.classList.toggle('hidden', !isTransfer);
+  accountSelect2.classList.toggle('hidden', isTransfer);
+  $('#sheetDelete').classList.toggle('hidden', !state.editingId);
+  noteInput.value = state.note;
+  renderNoteChips();
+  dateInput.value = state.date;
+  updateAmount();
+
+  const opts = data.accounts.map(a => `<option value="${a.id}">${a.icon} ${esc(a.name)}</option>`).join('');
+  accountSelect.innerHTML = opts;
+  accountSelect2.innerHTML = opts;
+  toAccountSelect.innerHTML = opts;
+  accountSelect.value = state.accountId || '';
+  accountSelect2.value = state.accountId || '';
+  toAccountSelect.value = state.toAccountId || '';
+
+  if (!isTransfer) {
+    const cats = data.categories.filter(c => c.type === state.sheetType);
+    catGrid.innerHTML = cats.map(c => `<button class="cat ${c.id === state.catId ? 'active' : ''}" data-cat="${c.id}">
+      <span>${c.icon}</span><span>${esc(c.name)}</span>
+    </button>`).join('');
+  }
+}
+
+function saveSheet() {
+  const amt = round2(parseFloat(state.amount) || 0);
+  if (amt <= 0) { toast('先输入金额'); return; }
+  if (state.sheetType === 'transfer') {
+    if (!state.accountId || !state.toAccountId || state.accountId === state.toAccountId) {
+      toast('转出和转入账户不能相同'); return;
+    }
+  } else if (!state.catId) {
+    toast('选一个分类'); return;
+  }
+
+  const tx = {
+    id: state.editingId || uid(),
+    type: state.sheetType,
+    amount: amt,
+    categoryId: state.sheetType === 'transfer' ? null : state.catId,
+    accountId: state.accountId || null,
+    toAccountId: state.sheetType === 'transfer' ? state.toAccountId : null,
+    note: (state.note || '').trim(),
+    date: state.date || today(),
+    time: state.time || nowTime(),
+    createdAt: Date.now()
+  };
+
+  if (state.editingId) {
+    const i = data.transactions.findIndex(t => t.id === state.editingId);
+    if (i >= 0) {
+      tx.createdAt = data.transactions[i].createdAt || tx.createdAt;
+      data.transactions[i] = tx;
+    }
+  } else {
+    data.transactions.push(tx);
+  }
+
+  if (state.sheetType === 'expense') data.settings.lastExpenseCat = state.catId;
+  if (state.sheetType === 'income') data.settings.lastIncomeCat = state.catId;
+  data.settings.lastAccount = state.accountId;
+
+  state.month = tx.date.slice(0, 7);
+  save();
+  closeSheet();
+  renderAll();
+  toast(state.editingId ? '改好了' : '记好了');
+}
+
+function deleteSheet() {
+  if (!state.editingId) return;
+  if (!confirm('删除这笔账？')) return;
+  data.transactions = data.transactions.filter(t => t.id !== state.editingId);
+  save();
+  closeSheet();
+  renderAll();
+  toast('已删除');
+}
+
+/* ================= 粘贴识别 ================= */
+const parseModal = $('#parseModal');
+const parseText = $('#parseText');
+
+const EXPENSE_RULES = [
+  ['c_food', /餐饮|吃饭|早餐|午餐|晚餐|宵夜|外卖|奶茶|咖啡|汉堡|麦当劳|肯德基|星巴克|沙县|面馆|饭店|餐厅|火锅|烧烤|食堂|零食|水果|蛋糕|面包/],
+  ['c_traffic', /地铁|公交|打车|滴滴|出租|网约车|高铁|火车|动车|加油|油费|停车|高速|单车|车费|交通/],
+  ['c_shop', /淘宝|天猫|京东|拼多多|超市|便利店|商场|购物|衣服|服装|鞋|包包|数码|电器|护肤|化妆品|日用品|美团/],
+  ['c_home', /房租|租金|水费|电费|物业|燃气|宽带|话费|流量|水电|家政/],
+  ['c_fun', /电影|游戏|KTV|演出|剧院|演唱会|剧本杀|桌游|健身|运动/],
+  ['c_med', /医院|挂号|药房|药店|买药|诊所|体检|牙科|门诊|医疗/],
+  ['c_study', /书店|图书|课程|培训|考试|学费|文具|教育/],
+  ['c_travel', /酒店|民宿|机票|旅游|景区|景点|门票|携程|去哪儿|飞猪|旅行/],
+  ['c_gift', /红包|礼物|份子|请客|人情/]
+];
+
+const INCOME_RULES = [
+  ['c_salary', /工资|薪水|薪金|奖金|绩效|补贴/],
+  ['c_part', /兼职|稿费|劳务|副业/],
+  ['c_invest', /理财|基金|股票|利息|分红|收益/],
+  ['c_red', /红包/],
+  ['c_inother', /退款|报销/]
+];
+
+function normalizeText(s) {
+  return String(s || '')
+    .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/．/g, '.')
+    .replace(/，/g, ',')
+    .replace(/：/g, ':')
+    .replace(/　/g, ' ');
+}
+
+function pickAmount(text) {
+  const re = /(?:¥|￥)?\s*(\d{1,7}(?:,\d{3})*(?:\.\d{1,2})?)\s*(元)?/g;
+  let m;
+  let best = null;
+  while ((m = re.exec(text)) !== null) {
+    const raw = m[1].replace(/,/g, '');
+    const v = parseFloat(raw);
+    if (!isFinite(v) || v <= 0 || v > 1000000) continue;
+    const start = m.index;
+    const end = re.lastIndex;
+    const bc = text[start - 1] || '';
+    const ac = text[end] || '';
+    if (/\d/.test(bc) || /\d/.test(ac)) continue;
+    const before = text.slice(Math.max(0, start - 18), start);
+    const after = text.slice(end, end + 8);
+    const ctx = before + after;
+    let score = 0;
+    if (/[¥￥]/.test(m[0])) score += 3;
+    if (m[2] || /元/.test(after)) score += 2;
+    if (/余额|可用|额度|积分|优惠|立减|已省|红包|剩余|收益|抵扣|折扣/.test(ctx)) score -= 5;
+    if (/支付|付款|消费|支出|实付|合计|金额|扣款|收款|转账|入账/.test(before)) score += 3;
+    if (/\./.test(raw)) score += 2;
+    if (/[-/:]/.test(bc) || /[-/:]/.test(ac)) score -= 8;
+    if (/[年月日]/.test(ac)) score -= 8;
+    if (!best || score > best.score) best = { v, score };
+  }
+  return best ? round2(best.v) : null;
+}
+
+function pickMerchant(text) {
+  const re = /(?:收款方名称|收款方|收款人|商户名称|商户|商家|付款给|转账给|交易对方|对方)[：:\s]*([^\n，,。;；]{1,40})/;
+  const m = text.match(re);
+  if (!m) return '';
+  let v = m[1].split(/\s{2,}|支付时间|交易时间|付款时间|订单号|交易单号|商户单号/)[0].trim();
+  v = v.replace(/^[：:\s]+/, '').replace(/\s+/g, ' ');
+  if (!v || /^(微信|支付宝|银行|零钱|余额|支付)/.test(v)) return '';
+  return v.slice(0, 20);
+}
+
+function pickAccount(text) {
+  if (/支付宝|花呗|余额宝|alipay/i.test(text)) return 'a_alipay';
+  if (/微信|零钱|wechat/i.test(text)) return 'a_wechat';
+  if (/银行卡|信用卡|储蓄卡|银行|尾号\s*\d{4}/.test(text)) return 'a_bank';
+  if (/现金/.test(text)) return 'a_cash';
+  return null;
+}
+
+function pickType(text) {
+  if (/(已收款|收款成功|收款到账|收到(一笔)?(转账|红包|款)|收入|工资|薪水|入账|到账|转入|退款)/.test(text)) return 'income';
+  return 'expense';
+}
+
+function pickCategory(text, type) {
+  const rules = type === 'income' ? INCOME_RULES : EXPENSE_RULES;
+  const hit = rules.find(r => r[1].test(text));
+  const exists = id => data.categories.some(c => c.id === id && c.type === type);
+  if (hit && exists(hit[0])) return hit[0];
+  const custom = data.categories.find(c =>
+    c.type === type && c.name && c.name.length >= 2 && c.name !== '其他' && text.includes(c.name)
+  );
+  if (custom) return custom.id;
+  return firstCat(type);
+}
+
+function pickDate(text) {
+  let m = text.match(/(20\d{2})\s*[年\-\/.]\s*(\d{1,2})\s*[月\-\/.]\s*(\d{1,2})/);
+  if (m) {
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return `${y}-${pad(mo)}-${pad(d)}`;
+  }
+  m = text.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/);
+  if (m) {
+    const mo = Number(m[1]), d = Number(m[2]);
+    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+      return `${new Date().getFullYear()}-${pad(mo)}-${pad(d)}`;
+    }
+  }
+  return '';
+}
+
+function pickTime(text) {
+  const m = text.match(/(?:^|[^\d])([01]?\d|2[0-3])\s*[：:]\s*([0-5]\d)(?!\d)/);
+  if (m) return `${pad(Number(m[1]))}:${m[2]}`;
+  return '';
+}
+
+function parsePayment(raw) {
+  const text = normalizeText(raw);
+  const type = pickType(text);
+  const merchant = pickMerchant(text);
+  return {
+    type,
+    amount: pickAmount(text),
+    catId: pickCategory(text + ' ' + merchant, type),
+    accountId: pickAccount(text),
+    note: merchant,
+    date: pickDate(text),
+    time: pickTime(text)
+  };
+}
+
+function applyParsed(info) {
+  if (!info) return;
+  openSheet(info.type || 'expense');
+  if (info.amount) state.amount = info.amount.toFixed(2);
+  if (info.catId) state.catId = info.catId;
+  if (info.accountId) state.accountId = info.accountId;
+  if (info.note) state.note = info.note;
+  if (info.date) state.date = info.date;
+  if (info.time) state.time = info.time;
+  renderSheet();
+  parseModal.classList.add('hidden');
+  if (!info.amount) { toast('没认出金额，请手动输入'); return; }
+  const bits = ['¥' + info.amount.toFixed(2)];
+  if (info.note) bits.push(info.note);
+  toast('认出 ' + bits.join(' · ') + '，请核对');
+}
+
+function openParse() {
+  parseModal.classList.remove('hidden');
+  setTimeout(() => parseText.focus(), 50);
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    navigator.clipboard.readText().then(t => {
+      if (t && t.trim() && !parseText.value.trim()) parseText.value = t.trim();
+    }).catch(() => {});
+  }
+}
+
+function closeParse() { parseModal.classList.add('hidden'); }
+
+async function readClipboard() {
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    toast('这个浏览器不支持直接读，请长按输入框粘贴');
+    parseText.focus();
+    return;
+  }
+  try {
+    const t = await navigator.clipboard.readText();
+    if (t && t.trim()) {
+      parseText.value = t.trim();
+      toast('读到了，点「识别并填写」');
+    } else {
+      toast('剪贴板里没有文字');
+      parseText.focus();
+    }
+  } catch (e) {
+    toast('浏览器不让直接读，请长按输入框粘贴');
+    parseText.focus();
+  }
+}
+
+/* ================= 小弹窗：分类/账户 ================= */
+const mini = $('#mini');
+let miniState = { mode: null, id: null };
+
+function openMini(mode, id) {
+  miniState = { mode, id: id || null };
+  const isAcc = mode.indexOf('acc') === 0;
+  const obj = isAcc ? data.accounts.find(a => a.id === id) : data.categories.find(c => c.id === id);
+  let title = '编辑';
+  if (!id) {
+    if (mode === 'cat-expense') title = '新增支出分类';
+    else if (mode === 'cat-income') title = '新增收入分类';
+    else title = '新增账户';
+  }
+  $('#miniTitle').textContent = title;
+  $('#miniName').value = obj ? obj.name : '';
+  $('#miniIcon').value = obj ? obj.icon : (isAcc ? '💳' : '📦');
+  $('#miniInitialWrap').classList.toggle('hidden', !isAcc);
+  $('#miniInitial').value = obj ? (obj.initial || 0) : 0;
+  $('#miniDelete').classList.toggle('hidden', !id);
+  mini.classList.remove('hidden');
+  setTimeout(() => $('#miniName').focus(), 50);
+}
+
+function closeMini() { mini.classList.add('hidden'); }
+
+function saveMini() {
+  const name = $('#miniName').value.trim();
+  const icon = $('#miniIcon').value.trim() || '📦';
+  const isAcc = miniState.mode.indexOf('acc') === 0;
+  if (!name) { toast('写个名称'); return; }
+
+  if (isAcc) {
+    const initial = round2(parseFloat($('#miniInitial').value) || 0);
+    if (miniState.id) {
+      const a = data.accounts.find(x => x.id === miniState.id);
+      if (a) { a.name = name; a.icon = icon; a.initial = initial; }
+    } else {
+      data.accounts.push({ id: uid(), name, icon, initial });
+    }
+  } else {
+    if (miniState.id) {
+      const c = data.categories.find(x => x.id === miniState.id);
+      if (c) { c.name = name; c.icon = icon; }
+    } else {
+      const type = miniState.mode === 'cat-income' ? 'income' : 'expense';
+      data.categories.push({
+        id: uid(), name, icon, type,
+        color: PALETTE[Math.floor(Math.random() * PALETTE.length)]
+      });
+    }
+  }
+  save();
+  closeMini();
+  renderAll();
+  toast('已保存');
+}
+
+function deleteMini() {
+  if (!miniState.id) return;
+  const isAcc = miniState.mode.indexOf('acc') === 0;
+  if (isAcc) {
+    const used = data.transactions.some(t => t.accountId === miniState.id || t.toAccountId === miniState.id);
+    if (used) { toast('这个账户有账单，不能删'); return; }
+    if (!confirm('删除这个账户？')) return;
+    data.accounts = data.accounts.filter(a => a.id !== miniState.id);
+  } else {
+    const used = data.transactions.some(t => t.categoryId === miniState.id);
+    if (used) { toast('这个分类有账单，不能删'); return; }
+    if (!confirm('删除这个分类？')) return;
+    data.categories = data.categories.filter(c => c.id !== miniState.id);
+  }
+  save();
+  closeMini();
+  renderAll();
+  toast('已删除');
+}
+
+/* ================= 导出 / 导入 ================= */
+function download(filename, text, type) {
+  const blob = new Blob([text], { type: type || 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+
+function exportJson() {
+  download(`小账本备份_${today()}.json`, JSON.stringify(data, null, 2), 'application/json;charset=utf-8');
+  toast('已导出备份');
+}
+
+function exportCsv() {
+  const rows = [['日期', '时间', '类型', '分类', '备注', '金额', '账户']];
+  data.transactions.slice().sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))).forEach(t => {
+    let type = t.type === 'expense' ? '支出' : t.type === 'income' ? '收入' : '转账';
+    let cname = t.type === 'transfer' ? '转账' : (cat(t.categoryId) ? cat(t.categoryId).name : '未分类');
+    let aname = acc(t.accountId) ? acc(t.accountId).name : '';
+    if (t.type === 'transfer') {
+      const to = acc(t.toAccountId);
+      aname += ' → ' + (to ? to.name : '');
+    }
+    rows.push([t.date, t.time || '', type, cname, t.note || '', t.amount, aname]);
+  });
+  const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  download(`小账本账单_${today()}.csv`, csv, 'text/csv;charset=utf-8');
+  toast('已导出 CSV');
+}
+
+function importJson(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const obj = JSON.parse(reader.result);
+      if (!obj || !Array.isArray(obj.transactions)) throw new Error('文件格式不对');
+      if (!confirm('导入会覆盖当前所有数据，确定吗？')) return;
+      if (window.XZBDataSafety && !window.XZBDataSafety.confirmImport()) return;
+      data = obj;
+      ensureData();
+      save();
+      renderAll();
+      if (window.XZBDataSafety) window.XZBDataSafety.checkReminder();
+      toast('导入成功');
+    } catch (e) {
+      toast('导入失败：' + e.message);
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+/* ================= 事件绑定 ================= */
+$$('.tabbar [data-view]').forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
+$('#fab').addEventListener('click', () => openSheet('expense'));
+
+$('#openParse').addEventListener('click', openParse);
+$('#parsePaste').addEventListener('click', readClipboard);
+$('#parseCancel').addEventListener('click', closeParse);
+$('#parseGo').addEventListener('click', () => {
+  const raw = parseText.value.trim();
+  if (!raw) { toast('先粘贴一段付款信息'); parseText.focus(); return; }
+  applyParsed(parsePayment(raw));
+});
+parseText.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('#parseGo').click();
+});
+parseModal.addEventListener('click', e => { if (e.target === parseModal) closeParse(); });
+
+$$('.month-prev').forEach(b => b.addEventListener('click', () => {
+  state.month = shiftMonth(state.month, -1);
+  renderAll();
+}));
+$$('.month-next').forEach(b => b.addEventListener('click', () => {
+  if (state.month >= thisMonth()) return;
+  state.month = shiftMonth(state.month, 1);
+  renderAll();
+}));
+
+$('#sheetClose').addEventListener('click', closeSheet);
+$('#sheetSave').addEventListener('click', saveSheet);
+$('#sheetDelete').addEventListener('click', deleteSheet);
+sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+
+$$('#typeTabs button').forEach(b => b.addEventListener('click', () => {
+  state.sheetType = b.dataset.type;
+  if (state.sheetType === 'expense') state.catId = data.settings.lastExpenseCat || firstCat('expense');
+  else if (state.sheetType === 'income') state.catId = data.settings.lastIncomeCat || firstCat('income');
+  else state.catId = null;
+  renderSheet();
+}));
+
+catGrid.addEventListener('click', e => {
+  const b = e.target.closest('.cat');
+  if (!b) return;
+  state.catId = b.dataset.cat;
+  renderSheet();
+});
+
+noteInput.addEventListener('input', () => {
+  state.note = noteInput.value;
+  renderNoteChips();
+});
+$('#noteChips').addEventListener('click', e => {
+  const b = e.target.closest('.chip');
+  if (!b) return;
+  const n = b.dataset.note;
+  state.note = (state.note || '').trim() === n ? '' : n;
+  noteInput.value = state.note;
+  renderNoteChips();
+});
+dateInput.addEventListener('change', () => { state.date = dateInput.value || today(); });
+accountSelect.addEventListener('change', () => { state.accountId = accountSelect.value; accountSelect2.value = state.accountId; });
+accountSelect2.addEventListener('change', () => { state.accountId = accountSelect2.value; accountSelect.value = state.accountId; });
+toAccountSelect.addEventListener('change', () => { state.toAccountId = toAccountSelect.value; });
+
+$('#keypad').addEventListener('click', e => {
+  const b = e.target.closest('[data-key]');
+  if (b) pressKey(b.dataset.key);
+});
+
+document.addEventListener('keydown', e => {
+  if (sheet.classList.contains('hidden')) return;
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+    if (e.key === 'Escape') closeSheet();
+    return;
+  }
+  if (/^[0-9]$/.test(e.key)) pressKey(e.key);
+  else if (e.key === '.') pressKey('.');
+  else if (e.key === 'Backspace') pressKey('del');
+  else if (e.key === 'Enter') saveSheet();
+  else if (e.key === 'Escape') closeSheet();
+});
+
+$('#budgetSave').addEventListener('click', () => {
+  const v = round2(parseFloat($('#budgetInput').value) || 0);
+  if (v > 0) data.budgets[state.month] = v;
+  else delete data.budgets[state.month];
+  save();
+  renderAll();
+  toast(v > 0 ? '预算已保存' : '已取消预算');
+});
+
+$$('[data-theme-choice]').forEach(b => b.addEventListener('click', () => {
+  data.settings.theme = b.dataset.themeChoice;
+  save();
+  applyTheme();
+}));
+
+$('#backupNow').addEventListener('click', () => backupNow(true));
+$('#restoreFromPc').addEventListener('click', openBackupModal);
+$('#backupModalClose').addEventListener('click', () => backupModal.classList.add('hidden'));
+backupModal.addEventListener('click', e => { if (e.target === backupModal) backupModal.classList.add('hidden'); });
+
+$('#exportJson').addEventListener('click', exportJson);
+$('#exportCsv').addEventListener('click', exportCsv);
+$('#importBtn').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if (f) importJson(f);
+  e.target.value = '';
+});
+$('#clearData').addEventListener('click', () => {
+  if (!confirm('确定清空所有数据？建议先导出备份。')) return;
+  if (window.XZBDataSafety && !window.XZBDataSafety.confirmClear()) return;
+  data = defaults();
+  save();
+  renderAll();
+  if (window.XZBDataSafety) window.XZBDataSafety.checkReminder();
+  toast('已清空');
+});
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-add],[data-edit-cat],[data-del-cat],[data-edit-acc],[data-del-acc]');
+  if (!t) return;
+  if (t.dataset.add) {
+    openMini(t.dataset.add);
+  } else if (t.dataset.editCat) {
+    openMini('cat', t.dataset.editCat);
+  } else if (t.dataset.delCat) {
+    miniState = { mode: 'cat', id: t.dataset.delCat };
+    deleteMini();
+  } else if (t.dataset.editAcc) {
+    openMini('acc', t.dataset.editAcc);
+  } else if (t.dataset.delAcc) {
+    miniState = { mode: 'acc', id: t.dataset.delAcc };
+    deleteMini();
+  }
+});
+
+$('#miniCancel').addEventListener('click', closeMini);
+$('#miniSave').addEventListener('click', saveMini);
+$('#miniDelete').addEventListener('click', deleteMini);
+mini.addEventListener('click', e => { if (e.target === mini) closeMini(); });
+
+/* ===== 统计页：时间范围 + 收支切换 ===== */
+function openRangeEditor() {
+  if (!state.customStart || !state.customEnd) {
+    const r = periodRange();
+    state.customStart = r.start;
+    state.customEnd = r.end;
+  }
+  $('#rangeStart').value = state.customStart;
+  $('#rangeEnd').value = state.customEnd;
+  $('#rangeCustom').classList.remove('hidden');
+}
+
+$('#periodBar').addEventListener('click', e => {
+  const b = e.target.closest('[data-period]');
+  if (!b) return;
+  state.statsPeriod = b.dataset.period;
+  if (state.statsPeriod === 'custom') openRangeEditor();
+  else $('#rangeCustom').classList.add('hidden');
+  renderStats();
+});
+
+$('#rangeEdit').addEventListener('click', () => {
+  if (state.statsPeriod !== 'custom') {
+    const r = periodRange();
+    state.customStart = r.start;
+    state.customEnd = r.end;
+  }
+  state.statsPeriod = 'custom';
+  openRangeEditor();
+  renderStats();
+});
+
+$('#rangeApply').addEventListener('click', () => {
+  const s = $('#rangeStart').value;
+  const e = $('#rangeEnd').value;
+  if (!s || !e) { toast('两个日期都要选'); return; }
+  state.customStart = s;
+  state.customEnd = e;
+  state.statsPeriod = 'custom';
+  $('#rangeCustom').classList.add('hidden');
+  renderStats();
+});
+
+$('#kindBar').addEventListener('click', e => {
+  const b = e.target.closest('[data-kind]');
+  if (!b) return;
+  state.statsKind = b.dataset.kind;
+  renderStats();
+});
+
+/* ===== 我的 → 账本 ===== */
+$('#openBooks').addEventListener('click', () => switchView('books'));
+$('#booksBack').addEventListener('click', () => switchView('me'));
+
+/* ===== 投资页 ===== */
+$('#investAdd').addEventListener('click', () => openInvest(null));
+$('#investSave').addEventListener('click', saveInvest);
+$('#investDelete').addEventListener('click', deleteInvest);
+$('#investQuote').addEventListener('click', fetchIntoPrice);
+$('#investRefresh').addEventListener('click', refreshAllQuotes);
+$('#investType').addEventListener('change', toggleInvestFields);
+$('#investCancel').addEventListener('click', () => $('#investModal').classList.add('hidden'));
+$('#investModal').addEventListener('click', e => {
+  if (e.target === $('#investModal')) $('#investModal').classList.add('hidden');
+});
+$('#investList').addEventListener('click', e => {
+  const ip = e.target.closest('[data-policy]');
+  if (ip) { openPolicyDetail(ip.dataset.policy); return; }
+  const b = e.target.closest('[data-invest]');
+  if (!b) return;
+  openInvestDetail(b.dataset.invest);
+});
+$('#investAlloc').addEventListener('click', () => {
+  switchView('invest-alloc');
+  renderAlloc();
+});
+$('#allocBack').addEventListener('click', () => switchView('invest'));
+$('#investDetailBack').addEventListener('click', () => switchView('invest'));
+$('#investDetailEdit').addEventListener('click', () => {
+  const it = investById(state.investDetailId);
+  if (it) openInvest(it);
+});
+$('#investTabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-itab]');
+  if (!b) return;
+  state.investTab = b.dataset.itab;
+  renderInvestDetail();
+});
+$('#investTabOverview').addEventListener('click', e => {
+  const b = e.target.closest('[data-ai]');
+  if (b) openInvestAI(b.dataset.ai);
+});
+$('#investTabFlows').addEventListener('click', e => {
+  if (e.target.closest('#flowAdd')) {
+    const it = investById(state.investDetailId);
+    if (it) openFlowModal(it);
+    return;
+  }
+  const del = e.target.closest('[data-flow-del]');
+  if (!del) return;
+  const it = investById(state.investDetailId);
+  if (it) deleteFlow(it, del.dataset.flowDel);
+});
+$('#investTabValuations').addEventListener('click', e => {
+  if (e.target.closest('#valuationAdd')) {
+    const it = investById(state.investDetailId);
+    if (it) openValuationModal(it);
+    return;
+  }
+  const del = e.target.closest('[data-val-del]');
+  if (!del) return;
+  const it = investById(state.investDetailId);
+  if (it) deleteValuation(it, del.dataset.valDel);
+});
+
+/* 流水弹窗 */
+$('#flowKind').addEventListener('change', updateFlowHint);
+$('#flowSave').addEventListener('click', saveFlow);
+$('#flowCancel').addEventListener('click', () => $('#flowModal').classList.add('hidden'));
+$('#flowModal').addEventListener('click', e => {
+  if (e.target === $('#flowModal')) $('#flowModal').classList.add('hidden');
+});
+
+/* 估值弹窗 */
+$('#valSave').addEventListener('click', saveValuation);
+$('#valCancel').addEventListener('click', () => $('#valuationModal').classList.add('hidden'));
+$('#valuationModal').addEventListener('click', e => {
+  if (e.target === $('#valuationModal')) $('#valuationModal').classList.add('hidden');
+});
+$('#valQuote').addEventListener('click', async () => {
+  const it = investById(state.valTargetId);
+  if (!it || !it.code) { toast('这个项目没有代码，手动填吧'); return; }
+  const btn = $('#valQuote');
+  btn.disabled = true;
+  btn.textContent = '查询中…';
+  try {
+    const q = await fetchQuote(it.type, it.code);
+    $('#valPrice').value = q.price;
+    toast('现价 ' + q.price);
+  } catch (e) {
+    toast('没拿到行情，请手动填');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '获取现价';
+  }
+});
+
+/* ===== 保险页 ===== */
+$('#insAdd').addEventListener('click', () => openPolicy(null));
+$('#polSave').addEventListener('click', savePolicy);
+$('#polDelete').addEventListener('click', deletePolicy);
+$('#polPaid').addEventListener('click', markPolicyPaid);
+$('#polCancel').addEventListener('click', () => $('#policyModal').classList.add('hidden'));
+$('#policyModal').addEventListener('click', e => {
+  if (e.target === $('#policyModal')) $('#policyModal').classList.add('hidden');
+});
+$('#policyList').addEventListener('click', e => {
+  const b = e.target.closest('[data-policy]');
+  if (!b) return;
+  openPolicyDetail(b.dataset.policy);
+});
+$('#insPersonFilter').addEventListener('change', e => {
+  state.insPerson = e.target.value;
+  renderInsurance();
+});
+$('#insSummary').addEventListener('click', () => {
+  switchView('ins-family');
+  renderFamilySummary();
+});
+$('#insFamilyBack').addEventListener('click', () => switchView('insurance'));
+$('#policyDetailBack').addEventListener('click', () => switchView('insurance'));
+$('#policyDetailEdit').addEventListener('click', () => {
+  const p = data.policies.find(x => x.id === state.policyDetailId);
+  if (p) openPolicy(p);
+});
+$('#policyTabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-ptab]');
+  if (!b) return;
+  state.policyTab = b.dataset.ptab;
+  renderPolicyDetail();
+});
+['#policyTabOverview', '#policyTabClaims'].forEach(sel => {
+  $(sel).addEventListener('click', e => {
+    const ai = e.target.closest('[data-pai]');
+    if (ai) { openPolicyAI(ai.dataset.pai); return; }
+    const at = e.target.closest('[data-attach]');
+    if (at) {
+      e.preventDefault();
+      const p = data.policies.find(x => x.id === at.dataset.attach);
+      if (p) openAttachment(p);
+      return;
+    }
+    if (e.target.closest('#claimAdd')) {
+      e.target.closest('#claimAdd');
+      openClaimModal();
+      return;
+    }
+    const del = e.target.closest('[data-claim-del]');
+    if (del) {
+      if (!confirm('删除这条理赔记录？')) return;
+      const p = data.policies.find(x => x.id === state.policyDetailId);
+      if (!p) return;
+      const claim = (p.claims || []).find(c => c.id === del.dataset.claimDel);
+      if (window.XZBDataSafety && !window.XZBDataSafety.confirmImportant('理赔记录', claim ? claim.reason : '')) return;
+      p.claims = (p.claims || []).filter(c => c.id !== del.dataset.claimDel);
+      save(); renderAll(); toast('已删除');
+    }
+  });
+});
+$('#policyTabPayments').addEventListener('click', e => {
+  if (e.target.closest('#policyMarkPaid')) {
+    markPolicyPaidById(state.policyDetailId);
+    return;
+  }
+  if (e.target.closest('#policyUndoPaid')) {
+    const p = data.policies.find(x => x.id === state.policyDetailId);
+    if (p) undoLatestPayment(p);
+  }
+});
+
+/* 附件：选择 / 移除 */
+$('#polFile').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (file.size > 1.2 * 1024 * 1024) {
+    toast('文件超过 1.2MB，压一下再传（或只记文件名）');
+    e.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = String(reader.result || '');
+    const comma = dataUrl.indexOf(',');
+    pendingPolicyAttachment = {
+      name: file.name,
+      mime: file.type || 'application/octet-stream',
+      size: file.size,
+      data: comma >= 0 ? dataUrl.slice(comma + 1) : ''
+    };
+    renderPolicyAttachmentInfo();
+    toast('附件已选好，保存保单后生效');
+  };
+  reader.onerror = () => toast('读取文件失败');
+  reader.readAsDataURL(file);
+});
+$('#polAttachInfo').addEventListener('click', e => {
+  if (e.target.closest('#polAttachRemove')) {
+    pendingPolicyAttachment = null;
+    $('#polFile').value = '';
+    renderPolicyAttachmentInfo();
+    toast('已移除附件');
+  }
+});
+
+/* 理赔弹窗 */
+function openClaimModal() {
+  state.claimTargetId = state.policyDetailId;
+  $('#claimDate').value = today();
+  $('#claimAmount').value = '';
+  $('#claimReason').value = '';
+  $('#claimStatus').value = 'pending';
+  $('#claimNote').value = '';
+  $('#claimModal').classList.remove('hidden');
+}
+$('#claimSave').addEventListener('click', () => {
+  const p = data.policies.find(x => x.id === state.claimTargetId);
+  if (!p) return;
+  const reason = $('#claimReason').value.trim();
+  if (!reason) { toast('填一下理赔原因'); $('#claimReason').focus(); return; }
+  const rec = {
+    id: uid(), date: $('#claimDate').value || today(),
+    amount: round2(parseFloat($('#claimAmount').value) || 0),
+    reason, status: $('#claimStatus').value,
+    note: $('#claimNote').value.trim(), createdAt: Date.now()
+  };
+  p.claims = p.claims || [];
+  p.claims.push(rec);
+  save();
+  $('#claimModal').classList.add('hidden');
+  renderAll();
+  toast('理赔记录已保存');
+});
+$('#claimCancel').addEventListener('click', () => $('#claimModal').classList.add('hidden'));
+$('#claimModal').addEventListener('click', e => {
+  if (e.target === $('#claimModal')) $('#claimModal').classList.add('hidden');
+});
+
+/* 本地解读弹窗 */
+$('#aiCopy').addEventListener('click', () => copyText(state.aiPrompt));
+$('#aiClose').addEventListener('click', () => $('#aiModal').classList.add('hidden'));
+$('#aiModal').addEventListener('click', e => {
+  if (e.target === $('#aiModal')) $('#aiModal').classList.add('hidden');
+});
+
+if (window.matchMedia) {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onChange = () => { if (data.settings.theme === 'auto') applyTheme(); };
+  if (mq.addEventListener) mq.addEventListener('change', onChange);
+  else if (mq.addListener) mq.addListener(onChange);
+}
+
+/* ================= 启动 ================= */
+renderAll();
+checkBackupServer();
+
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
+</script>
+<script src="./js/data-safety.js"></script>
+</body>
+</html>
